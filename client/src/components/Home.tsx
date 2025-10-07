@@ -3,7 +3,9 @@ import React from 'react'
 
 const Home = () => {
   return (
-    <div>Home</div>
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-4xl font-bold text-blue-600">Hello Kavya welcome to Tailwind</p>
+    </div>
   )
 }
 
