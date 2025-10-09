@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { ShoppingCart, Moon, Menu, X } from "lucide-react";
+import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
 
 export function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -75,6 +75,9 @@ export function Navbar() {
                         {/* Cart Icon */}
                         <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
                             <ShoppingCart size={22} />
+                        </Link>
+                        <Link to="/account" className="text-gray-800 hover:text-amber-500 transition">
+                            <User size={22} />
                         </Link>
                     </div>
 
@@ -161,6 +164,14 @@ export function Navbar() {
                             >
                                 <ShoppingCart size={20} />
                                 <span>Cart</span>
+                            </Link>
+                            <Link
+                                to="/account"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
+                            >
+                                <User size={20} />
+                                <span>Account</span>
                             </Link>
                         </div>
                     </div>
