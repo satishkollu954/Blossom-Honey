@@ -34,7 +34,7 @@ export function Main(): JSX.Element {
                     <span className="font-display font-semibold">Treasure</span>
                 </h1>
 
-                <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-7 max-w-2xl mx-auto leading-relaxed">
                     Discover our premium collection of artisanal honey, sourced from the finest blossoms.
                 </p>
 

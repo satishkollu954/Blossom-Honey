@@ -1,7 +1,9 @@
+import { useState } from 'react'; // <-- Import useState
 import { useForm } from "react-hook-form";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Loader2 } from "lucide-react"; // <-- Import Loader2 for spinner icon
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 type ContactFormValues = {
     name: string;
@@ -11,6 +13,9 @@ type ContactFormValues = {
 };
 
 export function Contact() {
+    // 1. Add Loading State
+    const [isLoading, setIsLoading] = useState(false);
+
     const {
         register,
         handleSubmit,
@@ -19,9 +24,23 @@ export function Contact() {
     } = useForm<ContactFormValues>();
 
     const onSubmit = (data: ContactFormValues) => {
+        // 2. Set loading to true on submission start
+        setIsLoading(true);
+
         console.log("Contact form submitted:", data);
-        toast.success("Message sent! We'll get back to you soon.");
-        reset();
+        axios.post(`http://localhost:3005/api/contact-Us`, data)
+            .then((response) => {
+                toast.success("Message sent! We'll get back to you soon.");
+                reset();
+            })
+            .catch((error) => {
+                console.error("Error sending message:", error);
+                toast.error("Failed to send message. Please try again later.");
+            })
+            .finally(() => {
+                // 3. Set loading to false regardless of success or failure
+                setIsLoading(false);
+            });
     };
 
     return (
@@ -44,7 +63,7 @@ export function Contact() {
                     <div>
                         <div className="bg-white shadow rounded-xl p-8">
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                                {/* Name */}
+                                {/* ... (Your existing form fields: Name, Email, Subject, Message) ... */}
                                 <div>
                                     <label className="block mb-2 font-medium">Name</label>
                                     <input
@@ -56,7 +75,6 @@ export function Contact() {
                                     {errors.name && <p className="text-red-500 mt-1">{errors.name.message}</p>}
                                 </div>
 
-                                {/* Email */}
                                 <div>
                                     <label className="block mb-2 font-medium">Email</label>
                                     <input
@@ -68,7 +86,6 @@ export function Contact() {
                                     {errors.email && <p className="text-red-500 mt-1">{errors.email.message}</p>}
                                 </div>
 
-                                {/* Subject */}
                                 <div>
                                     <label className="block mb-2 font-medium">Subject</label>
                                     <input
@@ -80,7 +97,6 @@ export function Contact() {
                                     {errors.subject && <p className="text-red-500 mt-1">{errors.subject.message}</p>}
                                 </div>
 
-                                {/* Message */}
                                 <div>
                                     <label className="block mb-2 font-medium">Message</label>
                                     <textarea
@@ -91,17 +107,33 @@ export function Contact() {
                                     {errors.message && <p className="text-red-500 mt-1">{errors.message.message}</p>}
                                 </div>
 
+
+                                {/* 4. Updated Submit Button */}
                                 <button
                                     type="submit"
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition"
+                                    // Disable the button while loading to prevent double submission
+                                    disabled={isLoading}
+                                    className={`w-full text-white font-semibold py-3 rounded-lg transition flex items-center justify-center space-x-2 
+                                        ${isLoading
+                                            ? 'bg-yellow-400 cursor-not-allowed' // Slightly different background/color when disabled
+                                            : 'bg-yellow-500 hover:bg-yellow-600'
+                                        }`}
                                 >
-                                    Send Message
+                                    {isLoading ? (
+                                        <>
+                                            {/* Tailwind Spinner: animate-spin utility class with Lucide icon */}
+                                            <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                                            <span>Sending...</span>
+                                        </>
+                                    ) : (
+                                        <span>Send Message</span>
+                                    )}
                                 </button>
                             </form>
                         </div>
                     </div>
 
-                    {/* Contact Info */}
+                    {/* Contact Info (Remains the same) */}
                     <div className="space-y-6">
                         {/* Email */}
                         <div className="bg-white shadow rounded-xl p-6 flex items-start gap-4 hover:shadow-lg transition">

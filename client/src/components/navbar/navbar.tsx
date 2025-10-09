@@ -62,6 +62,15 @@ export function Navbar() {
                         >
                             Contact
                         </NavLink>
+                        <NavLink
+                            to="/story"
+                            className={({ isActive }) =>
+                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
+                                } transition-colors`
+                            }
+                        >
+                            Our Story
+                        </NavLink>
 
                         {/* Cart Icon */}
                         <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
@@ -133,6 +142,16 @@ export function Navbar() {
                                 }
                             >
                                 Contact
+                            </NavLink>
+                            <NavLink
+                                to="/story"
+                                onClick={() => setIsMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
+                                    } transition-colors`
+                                }
+                            >
+                                Our Story
                             </NavLink>
 
                             <Link
