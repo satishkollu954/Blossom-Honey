@@ -1,12 +1,28 @@
-// import { Navigate, useLocation } from 'react-router-dom';
+import type { ReactNode } from "react";
+import { useCookies } from "react-cookie";
+import { Navigate } from "react-router-dom";
 
-// const ProtectedRoute = ({ children, isAuthenticated }) => {
-//     const location = useLocation();
+interface ProtectedRouteProps {
+    children: ReactNode;
+    allowedRole?: string;
+}
 
-//     if (!isAuthenticated) {
-//         // Redirect to the login page, but pass the current location in the state
-//         return <Navigate to="/login" state={{ from: location }} replace />;
-//     }
+export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
+    const [cookies] = useCookies(["token", "role"]);
+    const isAuthenticated = cookies.token !== undefined;
 
-//     return children;
-// };
+    const role = cookies.role;
+
+    // If user is not authenticated
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // If user role doesn’t match the allowed role
+    if (allowedRole && role !== allowedRole) {
+        return <Navigate to="/unauthorized" replace />;
+    }
+
+    // If authenticated and authorized
+    return <>{children}</>;
+}
