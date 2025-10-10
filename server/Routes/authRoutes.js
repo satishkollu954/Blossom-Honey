@@ -18,8 +18,8 @@ router.post("/verify-otp", verifyOtp);
 // Login
 router.post("/login", login);
 
-// Forgot password 
-router.post("/forgot-password", forgotPassword);
+// Forgot password
+router.post("/send-otp", forgotPassword);
 
 // Reset password using OTP
 router.post("/reset-password", resetPassword);
