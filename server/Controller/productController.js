@@ -129,6 +129,12 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
+function generateSKU(productName) {
+  const prefix = productName.slice(0, 3).toUpperCase();
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${random}`;
+}
+
 // @desc    Create a new product
 // @route   POST /api/products/admin
 // @access  Private/Seller
@@ -155,14 +161,19 @@ const createProduct = asyncHandler(async (req, res) => {
   // ✅ Extract product images
   const productImages = extractImageUrls(req.files);
   const sellerId = req.user?._id || req.body.seller;
-  const isApproved = true;
-  // isApproved: req.user.role === "admin",
+  const isApproved = req.user.role === "admin";
   // ✅ Create new product
+
+   // 3️⃣ Generate SKU
+    let skuu;
+    do {
+      skuu = generateSKU(req.body.name);
+    } while (await Product.findOne({ sku: skuu }));
   const product = new Product({
     name: req.body.name,
     description: req.body.description,
     category: req.body.category,
-    sku: req.body.sku,
+    sku: skuu,
     variants: variantsData,
     images: productImages,
     seller: sellerId,
