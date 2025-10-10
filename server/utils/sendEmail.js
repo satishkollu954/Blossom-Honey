@@ -29,7 +29,6 @@ const sendEmail = async ({ to, subject, html }) => {
       from: ` "FitFusion" <${process.env.MAIL_USER}>`,
       to,
       subject,
-      text: text || html.replace(/<[^>]*>?/gm, ""),
       html,
     };
 
