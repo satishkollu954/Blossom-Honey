@@ -119,8 +119,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 // ---------------- RESET PASSWORD ----------------
 const resetPassword = asyncHandler(async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-  const record = await OtpVerification.findOne({ email, otp });
+  const { email, newPassword } = req.body;
+  const record = await OtpVerification.findOne({ email });
   if (!record) throw new Error("Invalid OTP");
   if (record.expiresAt < new Date()) {
     await OtpVerification.deleteOne({ _id: record._id });
