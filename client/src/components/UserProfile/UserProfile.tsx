@@ -106,44 +106,34 @@ export function UserProfile() {
         }
     };
 
-    // const addAddress = async () => {
-    //     if (!user) return;
-    //     try {
-    //         const res = await axios.post(
-    //             "http://localhost:3005/api/user/addresses",
-    //             newAddress,
-    //             { headers: { Authorization: `Bearer ${token}` } }
-    //         );
-    //         // Update user state immediately
-    //         setUser({
-    //             ...user,
-    //             addresses: [...user.addresses, res.data], // Add newly created address
-    //         });
-    //         toast.success("Address added successfully!");
-    //         setShowAddAddress(false); // hide add form
-    //         // Reset newAddress
-    //         setNewAddress({
-    //             fullName: "",
-    //             phone: "",
-    //             houseNo: "",
-    //             street: "",
-    //             city: "",
-    //             state: "",
-    //             postalCode: "",
-    //             country: "India",
-    //             landmark: "",
-    //             isDefault: false,
-    //         });
-    //     } catch (error) {
-    //         console.error(error);
-    //         toast.error("Failed to add address");
-    //     }
-    // };
-
-
     const addAddress = async () => {
         if (!user) return;
+
+        // Destructure newAddress
+        const { fullName, phone, street, city, state, postalCode } = newAddress;
+
+        // Validation: Required fields
+        if (!fullName || !phone || !street || !city || !state || !postalCode) {
+            toast.error("Please fill in all required fields!");
+            return;
+        }
+
+        // Validation: Phone number (10 digits)
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(phone)) {
+            toast.error("Phone number must be 10 digits");
+            return;
+        }
+
+        // Validation: Postal code (6 digits)
+        const postalRegex = /^\d{6}$/;
+        if (!postalRegex.test(postalCode)) {
+            toast.error("Postal code must be 6 digits");
+            return;
+        }
+
         try {
+            // Add new address
             await axios.post(
                 "http://localhost:3005/api/user/addresses",
                 newAddress,
@@ -157,6 +147,8 @@ export function UserProfile() {
             setUser(res.data);
 
             toast.success("Address added successfully!");
+
+            // Reset form
             setNewAddress({
                 fullName: "",
                 phone: "",
@@ -175,6 +167,7 @@ export function UserProfile() {
             toast.error("Failed to add address");
         }
     };
+
 
 
 
