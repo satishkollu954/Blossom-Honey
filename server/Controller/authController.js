@@ -16,7 +16,7 @@ const generateOTP = () =>
 
 // ---------------- SIGNUP ----------------
 const signup = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
 
   if (!name || !email || !password)
     throw new Error("Please provide name, email, and password");
