@@ -137,7 +137,7 @@ export function AdminLogin() {
                     </Link>
 
                     <Link
-                        to="/user-forget"
+                        to="/forget"
                         className="text-gray-600 hover:text-yellow-600 transition-colors block"
                     >
                         <strong className="font-semibold text-yellow-500 hover:text-yellow-600">Forget Password</strong>

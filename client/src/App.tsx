@@ -9,6 +9,7 @@ import { About } from "./components/About/about";
 import { Contact } from "./components/contact/contact";
 import { AdminLogin } from "./components/Login/AdminLogin";
 import { UserRegister } from "./components/Register/Register";
+import { ForgetPassword } from "./components/forgetPassword/forgetPassword";
 
 
 
@@ -33,6 +34,8 @@ function App() {
           <Route path="/login" element={<AdminLogin />} />
 
           <Route path="/register" element={<UserRegister />} />
+
+          <Route path="/forget" element={<ForgetPassword />} />
 
         </Routes>
         <Footer />
