@@ -44,7 +44,7 @@ export function UserRegister() {
             // We only send the required data to the backend (excluding confirmPassword)
             const { name, email, password } = values;
 
-            axios.post(`http://localhost:3005/api/auth/register`, { name, email, password })
+            axios.post(`http://localhost:3005/api/auth/signup`, { name, email, password })
                 .then((response) => {
                     setIsLoading(false);
 

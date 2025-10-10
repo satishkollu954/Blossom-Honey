@@ -26,7 +26,7 @@ const signup = asyncHandler(async (req, res) => {
 
   // Create user but set isVerified=false
   const isVerified = true;
-  const user = await User.create({ name, email, password, isVerified, role });
+  const user = await User.create({ name, email, password, isVerified });
 
   //   // Generate OTP
   //   const otp = generateOTP();
