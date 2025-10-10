@@ -7,6 +7,7 @@ const {
   addAddress,
   updateAddress,
   deleteAddress,
+  updateProfile,
 } = require("../Controller/userController");
 
 // Profile
