@@ -76,7 +76,7 @@ export function Navbar() {
                         <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
                             <ShoppingCart size={22} />
                         </Link>
-                        <Link to="/account" className="text-gray-800 hover:text-amber-500 transition">
+                        <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
                             <User size={22} />
                         </Link>
                     </div>
@@ -166,7 +166,7 @@ export function Navbar() {
                                 <span>Cart</span>
                             </Link>
                             <Link
-                                to="/account"
+                                to="/login"
                                 onClick={() => setIsMenuOpen(false)}
                                 className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
                             >
