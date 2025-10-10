@@ -44,7 +44,7 @@ export function UserRegister() {
             // We only send the required data to the backend (excluding confirmPassword)
             const { name, email, password } = values;
 
-            axios.post(`http://localhost:3005/api/auth/register`, { name, email, password })
+            axios.post(`http://localhost:3005/api/auth/signup`, { name, email, password })
                 .then((response) => {
                     setIsLoading(false);
 
@@ -53,8 +53,8 @@ export function UserRegister() {
                 })
                 .catch((error) => {
                     setIsLoading(false);
-                    console.error('Registration failed:', error);
-                    alert('Registration Failed. Please try again.'); // Simple failure message
+                    console.error('Registration failed:', error.message);
+                    alert(`${error.response?.data?.message || error.message}`); // Simple failure message
                 });
         },
     });

@@ -1,9 +1,25 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
+import { useCookies } from "react-cookie";
 
 export function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+    const [cookies, , removeCookie] = useCookies(["role", "token"]);
+    const [open, setOpen] = useState(false);
+    const role = cookies.role;
+    const isLoggedIn = role === "user" || role === "admin";
+
+
+
+
+
+    const handleLogout = () => {
+
+        removeCookie("role");
+        removeCookie("token");
+        window.location.href = "/login";
+    }
 
     const toggleMenu = (): void => {
         setIsMenuOpen((prev) => !prev);
@@ -72,13 +88,74 @@ export function Navbar() {
                             Our Story
                         </NavLink>
 
+                        {
+                            role === "admin" && (
+                                <NavLink
+                                    to="/admin"
+                                    className={({ isActive }) =>
+                                        `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
+                                        } transition-colors`
+                                    }
+                                >
+                                    Dashboard
+                                </NavLink>
+                            )
+                        }
+
                         {/* Cart Icon */}
-                        <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
-                            <ShoppingCart size={22} />
-                        </Link>
-                        <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
-                            <User size={22} />
-                        </Link>
+                        {
+                            role !== "admin" && (
+                                <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
+                                    <ShoppingCart size={22} />
+                                </Link>
+                            )
+                        }
+                        <div className="relative">
+                            {!isLoggedIn ? (
+                                <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
+                                    <User size={22} />
+                                </Link>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpen(!open);
+                                        }}
+                                        className="text-gray-800 hover:text-amber-500 transition relative"
+                                    >
+                                        <User size={22} />
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {open && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg p-2 z-50">
+                                            {/* Show Profile only if role === "user" */}
+                                            {role === "user" && (
+                                                <Link
+                                                    to="/profile"
+                                                    onClick={() => setOpen(false)}
+                                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
+                                                >
+                                                    Profile
+                                                </Link>
+                                            )}
+
+                                            <button
+                                                onClick={handleLogout}
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
+                                            >
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+
+
+
                     </div>
 
                     {/* Right Section (Dark Mode + Mobile Menu Button) */}
@@ -156,23 +233,76 @@ export function Navbar() {
                             >
                                 Our Story
                             </NavLink>
+                            {
+                                role === "admin" && (
+                                    <NavLink
+                                        to="/admin"
+                                        className={({ isActive }) =>
+                                            `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
+                                            } transition-colors`
+                                        }
+                                    >
+                                        Dashboard
+                                    </NavLink>
+                                )
+                            }
 
-                            <Link
-                                to="/cart"
-                                onClick={() => setIsMenuOpen(false)}
-                                className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
-                            >
-                                <ShoppingCart size={20} />
-                                <span>Cart</span>
-                            </Link>
-                            <Link
-                                to="/login"
-                                onClick={() => setIsMenuOpen(false)}
-                                className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
-                            >
-                                <User size={20} />
-                                <span>Account</span>
-                            </Link>
+                            {
+                                role != "admin" && (
+                                    <Link
+                                        to="/cart"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
+                                    >
+                                        <ShoppingCart size={20} />
+
+                                    </Link>
+                                )
+                            }
+                            <div className="relative">
+                                {!isLoggedIn ? (
+                                    <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
+                                        <User size={22} />
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpen(!open);
+                                            }}
+                                            className="text-gray-800 hover:text-amber-500 transition relative"
+                                        >
+                                            <User size={22} />
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {open && (
+                                            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg p-2 z-50">
+                                                {/* Show Profile only if role === "user" */}
+                                                {role === "user" && (
+                                                    <Link
+                                                        to="/profile"
+                                                        onClick={() => setOpen(false)}
+                                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
+                                                    >
+                                                        Profile
+                                                    </Link>
+                                                )}
+
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
+                                                >
+                                                    Logout
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+
                         </div>
                     </div>
                 )}

@@ -5,7 +5,7 @@ import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom'; // <-- Import useLocation
 import { useCookies } from 'react-cookie';
 
-// ... (AdminLoginSchema and AdminLoginValues remain the same) ...
+
 const AdminLoginSchema = Yup.object().shape({
     email: Yup.string()
         .min(1, 'Email is required')
@@ -21,10 +21,9 @@ type AdminLoginValues = Yup.InferType<typeof AdminLoginSchema>;
 export function AdminLogin() {
     const [cookie, setCookie] = useCookies(["role", "token"]);
     const navigate = useNavigate();
-    const location = useLocation(); // <-- Get the current location object
+    const location = useLocation();
 
-    // Get the previous path (if passed from a protected route)
-    // The previous location is typically stored in location.state.from
+
     const fromPath = location.state?.from?.pathname || '/';
 
     const formik = useFormik<AdminLoginValues>({
@@ -38,25 +37,19 @@ export function AdminLogin() {
                 .then((response) => {
                     const { user, token } = response.data;
 
-                    // 1. Set Cookies
-                    // NOTE: You must check your `setCookie` function's signature. 
-                    // Assuming your current two-argument structure is correct:
+
                     setCookie("role", user.role);
                     setCookie("token", token);
 
-                    // 2. Navigation Logic is placed here, where `user.role` is available
                     if (user.role === 'admin') {
-                        // Admin users always go to the dashboard
-                        navigate("/admin");
+                        setTimeout(() => navigate("/admin", { replace: true }), 100);
                     } else {
-                        // Standard users go to the last page they tried to access,
-                        // otherwise default to the homepage ('/')
-                        navigate(fromPath, { replace: true });
+                        setTimeout(() => navigate(fromPath, { replace: true }), 100);
                     }
                 })
                 .catch((error) => {
                     console.error("Login failed:", error);
-                    // Optionally show a toast notification for login failure here
+
                 });
 
 
@@ -64,7 +57,7 @@ export function AdminLogin() {
     });
 
     return (
-        // ... (JSX remains the same) ...
+
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
             <div className="w-full max-w-md bg-white shadow-xl rounded-lg p-8">
                 <div className="text-center mb-6">
@@ -137,7 +130,7 @@ export function AdminLogin() {
                     </Link>
 
                     <Link
-                        to="/user-forget"
+                        to="/forget"
                         className="text-gray-600 hover:text-yellow-600 transition-colors block"
                     >
                         <strong className="font-semibold text-yellow-500 hover:text-yellow-600">Forget Password</strong>
