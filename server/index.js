@@ -10,7 +10,7 @@ const uploadRoutes = require("./Routes/upload");
 const authRoutes = require("./Routes/authRoutes");
 const productRoutes = require("./Routes/productRoutes");
 const adminProductRoutes = require("./Routes/adminProductRoutes");
-
+const userRoutes = require("./Routes/userRoutes");
 const app = express();
 
 const allowedOrigins = process.env.FRONTEND_URLS
@@ -39,6 +39,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/products/admin", adminProductRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 
 // Optional: serve local uploads if needed
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
