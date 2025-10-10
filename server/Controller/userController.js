@@ -18,6 +18,34 @@ const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// ---------------- UPDATE PROFILE ----------------
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const { name, email } = req.body;
+
+  // Update only provided fields
+  if (name) user.name = name;
+  if (email) user.email = email;
+
+  await user.save();
+
+  res.json({
+    message: "Profile updated successfully",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      addresses: user.addresses || [],
+    },
+  });
+});
+
 // ---------------- GET ALL ADDRESSES ----------------
 const getAddresses = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
@@ -139,4 +167,5 @@ module.exports = {
   addAddress,
   updateAddress,
   deleteAddress,
+  updateProfile,
 };

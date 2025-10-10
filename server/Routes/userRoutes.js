@@ -11,6 +11,8 @@ const {
 
 // Profile
 router.get("/profile", protect, getProfile);
+// Update profile
+router.put("/profile", protect, updateProfile);
 
 // Address management
 router.get("/addresses", protect, getAddresses);
