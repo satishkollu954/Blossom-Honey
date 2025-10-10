@@ -22,7 +22,11 @@ const signup = asyncHandler(async (req, res) => {
     throw new Error("Please provide name, email, and password");
 
   const existingUser = await User.findOne({ email });
-  if (existingUser) throw new Error("User already exists");
+  if (existingUser) {
+    return res.status(400).json({
+      message: "User already exists",
+    });
+  }
 
   // Create user but set isVerified=false
   const isVerified = true;

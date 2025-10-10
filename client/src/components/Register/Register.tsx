@@ -53,8 +53,8 @@ export function UserRegister() {
                 })
                 .catch((error) => {
                     setIsLoading(false);
-                    console.error('Registration failed:', error);
-                    alert('Registration Failed. Please try again.'); // Simple failure message
+                    console.error('Registration failed:', error.message);
+                    alert(`${error.response?.data?.message || error.message}`); // Simple failure message
                 });
         },
     });

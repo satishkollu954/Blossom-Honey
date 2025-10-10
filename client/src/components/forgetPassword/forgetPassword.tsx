@@ -5,9 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { Loader2, Mail, Lock, CheckCircle } from "lucide-react";
 
-// =================================================================
-// TypeScript Interfaces for API communication
-// =================================================================
+
 
 interface ResetPasswordResponse {
     success: boolean;
@@ -20,9 +18,7 @@ interface ErrorResponse {
     // Add other error properties
 }
 
-// =================================================================
-// Component
-// =================================================================
+
 
 export function ForgetPassword() {
     const [email, setEmail] = useState<string>("");
@@ -34,15 +30,12 @@ export function ForgetPassword() {
     const [isOtpLoading, setIsOtpLoading] = useState<boolean>(false);
     const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
 
-    // Ensure VITE_API_BASE_URL is defined in your .env file
-    const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL as string;
+
 
     // Simple email validation regex
     const isEmailValid: boolean = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    // ===================================
-    // Handlers
-    // ===================================
+
 
     const handleSendOtp = async (e: MouseEvent<HTMLButtonElement>): Promise<void> => {
         e.preventDefault();
@@ -55,7 +48,7 @@ export function ForgetPassword() {
         setIsOtpLoading(true);
 
         try {
-            await axios.post(`${API_BASE_URL}/api/auth/send-otp`, {
+            await axios.post(`http://localhost:3005/api/auth/send-otp`, {
                 email: email,
             });
             toast.success("OTP sent to your email.");
@@ -80,7 +73,7 @@ export function ForgetPassword() {
         setIsOtpLoading(true);
 
         try {
-            await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
+            await axios.post(`http://localhost:3005/api/auth/verify-otp`, {
                 email: email,
                 otp: otp,
             });
@@ -114,7 +107,7 @@ export function ForgetPassword() {
 
         try {
             const res = await axios.post<ResetPasswordResponse>(
-                `${API_BASE_URL}/api/auth/reset-password`,
+                `http://localhost:3005/api/auth/reset-password`,
                 {
                     email: email,
                     newPassword: newPassword,
@@ -124,7 +117,7 @@ export function ForgetPassword() {
             if (res.data?.success || res.status === 200) { // Check for success field or 200 status
                 toast.success("Password updated successfully.");
                 setTimeout(() => {
-                    navigate("/user-login");
+                    navigate("/login");
                 }, 1000);
             } else {
                 toast.error(res.data?.message || "Something went wrong. Please try again.");
@@ -138,10 +131,6 @@ export function ForgetPassword() {
             setIsResetLoading(false);
         }
     };
-
-    // ===================================
-    // JSX (Tailwind)
-    // ===================================
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
