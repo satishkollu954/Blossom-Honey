@@ -184,18 +184,18 @@ export function UserProfile() {
         if (!editedAddress) return;
 
         try {
-            const res = await axios.put(
+            await axios.put(
                 `http://localhost:3005/api/user/addresses/${id}`,
                 editedAddress,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            // Update the address in state
-            setUser({
-                ...user,
-                addresses: user.addresses.map((addr) =>
-                    addr._id === id ? res.data : addr
-                ),
+
+            // Re-fetch full user to ensure backend state matches
+            const res = await axios.get("http://localhost:3005/api/user/profile", {
+                headers: { Authorization: `Bearer ${token}` },
             });
+            setUser(res.data);
+
             toast.success("Address updated successfully!");
             setEditingAddressId(null);
         } catch (error) {
@@ -205,6 +205,7 @@ export function UserProfile() {
     };
 
 
+
     const deleteAddress = async (id: string) => {
         if (!user) return;
         try {
@@ -212,10 +213,10 @@ export function UserProfile() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             // Remove the deleted address from state
-            setUser({
-                ...user,
-                addresses: user.addresses.filter((addr) => addr._id !== id),
-            });
+            setUser((prevUser) => ({
+                ...prevUser!,
+                addresses: prevUser!.addresses.filter((addr) => addr._id !== id),
+            }));
             toast.success("Address deleted successfully!");
         } catch (error) {
             console.error(error);
