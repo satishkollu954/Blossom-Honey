@@ -148,9 +148,23 @@ const createProduct = asyncHandler(async (req, res) => {
     }
   }
 
-  // Extract images and videos
-  const productImages = extractMediaUrls(req.files?.images || []);
-  const productVideos = extractMediaUrls(req.files?.videos || []);
+  // Extract product images
+  const productImages = extractMediaUrls(req.files?.productImages || []);
+
+  // Extract variant images
+  // Expected: req.files.variantImages is array of files, each file has a 'fieldname' or you can map manually
+  const variantFiles = req.files?.variantImages || [];
+
+  // Map variant images to corresponding variants (simple approach: assume order matches)
+  variantsData = variantsData.map((v, i) => {
+    const filesForVariant = variantFiles[i]
+      ? Array.isArray(variantFiles[i])
+        ? variantFiles[i]
+        : [variantFiles[i]]
+      : [];
+    const images = extractMediaUrls(filesForVariant);
+    return { ...v, images };
+  });
 
   const sellerId = req.user?._id || req.body.seller;
   const isApproved = req.user.role === "admin";
@@ -168,7 +182,6 @@ const createProduct = asyncHandler(async (req, res) => {
     sku: skuu,
     variants: variantsData,
     images: productImages,
-    videos: productVideos,
     seller: sellerId,
     isApproved,
     shippingCharge: req.body.shippingCharge || 0,
