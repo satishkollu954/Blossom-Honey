@@ -14,14 +14,13 @@ const {
 const { protect, seller, admin } = require("../middleware/authMiddleware");
 
 // --- Updated: Import the factory function and create a product-specific uploader ---
-const {createUploader} = require("../middleware/uploadMiddleware");
+const { createUploader } = require("../middleware/uploadMiddleware");
 const productUploader = createUploader("products"); // Use the 'products' subfolder
 
 // @desc    Get all products (including unapproved) - For Admin/Seller Dashboard
 // @route   GET /api/products/admin
 // @access  Private/Seller/Admin
 router.get("/", protect, seller, getAllProductsAdminView);
-
 
 // @desc    Create a new product
 // @route   POST /api/products/admin
