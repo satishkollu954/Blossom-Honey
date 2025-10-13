@@ -1,12 +1,11 @@
+// server/Controller/productController.js
 const asyncHandler = require("express-async-handler");
 const Product = require("../Model/Product");
 const mongoose = require("mongoose");
 
-// --- Helper function to extract image URLs from multer/Cloudinary output ---
-const extractImageUrls = (files) => {
-  // Check if files exist and is an array (from multer.array)
+// --- Helper function to extract URLs from multer/Cloudinary output ---
+const extractMediaUrls = (files) => {
   if (files && Array.isArray(files)) {
-    // Cloudinary storage attaches the 'path' or 'secure_url' to each file object
     return files
       .map((file) => file.path || file.secure_url)
       .filter((url) => url);
@@ -22,11 +21,9 @@ const extractImageUrls = (files) => {
 // @route   GET /api/products
 // @access  Public
 const getApprovedProducts = asyncHandler(async (req, res) => {
-  // Basic search and filtering logic can be added here
-  const pageSize = 12; // Products per page
+  const pageSize = 12;
   const page = Number(req.query.pageNumber) || 1;
 
-  // Only fetch products that have been approved by an admin
   const query = { isApproved: true };
 
   const count = await Product.countDocuments(query);
@@ -50,8 +47,8 @@ const getProductById = asyncHandler(async (req, res) => {
     _id: req.params.id,
     isApproved: true,
   })
-    .populate("reviews.user", "name") // Populate the name of the reviewer
-    .lean(); // Use lean() for performance since we don't plan to modify it
+    .populate("reviews.user", "name")
+    .lean();
 
   if (product) {
     res.json(product);
@@ -66,7 +63,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @access  Private/User
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
-  const reviewImages = extractImageUrls(req.files); // Get URLs from uploaded files
+  const reviewMedia = extractMediaUrls(req.files);
 
   const product = await Product.findById(req.params.id);
 
@@ -84,12 +81,11 @@ const createProductReview = asyncHandler(async (req, res) => {
       user: req.user._id,
       rating: Number(rating),
       comment,
-      images: reviewImages, // Save the Cloudinary URLs
+      media: reviewMedia, // image/video URLs
     };
 
     product.reviews.push(review);
 
-    // Calculate new rating metrics
     const numReviews = product.reviews.length;
     const totalRating = product.reviews.reduce(
       (acc, item) => item.rating + acc,
@@ -111,20 +107,18 @@ const createProductReview = asyncHandler(async (req, res) => {
 // 2. ADMIN/SELLER FUNCTIONS (Used in routes/adminProductRoutes.js)
 // =========================================================================
 
-// @desc    Get all products (including unapproved) - For Admin/Seller Dashboard
+// @desc    Get all products (Admin/Seller Dashboard)
 // @route   GET /api/products/admin
 // @access  Private/Seller/Admin
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
   let query = {};
-
-  // Sellers can only see their own products
   if (req.user.role === "seller") {
     query.seller = req.user._id;
   }
 
   const products = await Product.find(query)
-    .select("name sku isApproved category createdAt") // Select fields needed for dashboard table
-    .populate("seller", "name email"); // Show seller info
+    .select("name sku isApproved category createdAt")
+    .populate("seller", "name email");
 
   res.json(products);
 });
@@ -140,7 +134,8 @@ function generateSKU(productName) {
 // @access  Private/Seller
 const createProduct = asyncHandler(async (req, res) => {
   console.log("Request body:", req.body);
-  // ✅ Parse variants safely
+
+  // Parse variants
   let variantsData = [];
   if (Array.isArray(req.body.variants)) {
     variantsData = req.body.variants;
@@ -149,26 +144,23 @@ const createProduct = asyncHandler(async (req, res) => {
       variantsData = JSON.parse(req.body.variants);
     } catch (error) {
       res.status(400);
-      throw new Error("Invalid variants data format (must be a JSON array)");
+      throw new Error("Invalid variants data format (must be JSON array)");
     }
-  } else {
-    res.status(400);
-    throw new Error(
-      "Invalid variants data type (expected array or JSON string)"
-    );
   }
 
-  // ✅ Extract product images
-  const productImages = extractImageUrls(req.files);
+  // Extract images and videos
+  const productImages = extractMediaUrls(req.files?.images || []);
+  const productVideos = extractMediaUrls(req.files?.videos || []);
+
   const sellerId = req.user?._id || req.body.seller;
   const isApproved = req.user.role === "admin";
-  // ✅ Create new product
 
-   // 3️⃣ Generate SKU
-    let skuu;
-    do {
-      skuu = generateSKU(req.body.name);
-    } while (await Product.findOne({ sku: skuu }));
+  // Generate unique SKU
+  let skuu;
+  do {
+    skuu = generateSKU(req.body.name);
+  } while (await Product.findOne({ sku: skuu }));
+
   const product = new Product({
     name: req.body.name,
     description: req.body.description,
@@ -176,8 +168,9 @@ const createProduct = asyncHandler(async (req, res) => {
     sku: skuu,
     variants: variantsData,
     images: productImages,
+    videos: productVideos,
     seller: sellerId,
-    isApproved: isApproved,
+    isApproved,
     shippingCharge: req.body.shippingCharge || 0,
     deliveryTime: req.body.deliveryTime || "3-5 business days",
     tags: req.body.tags
@@ -197,45 +190,44 @@ const createProduct = asyncHandler(async (req, res) => {
 const updateProduct = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
-    throw new Error("Product not found or invalid ID");
+    throw new Error("Invalid product ID");
   }
 
   const product = await Product.findById(req.params.id);
-
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
 
-  // Authorization check: Seller can only update their own products
   if (product.seller.toString() !== req.user._id.toString()) {
     res.status(401);
     throw new Error("Not authorized to update this product");
   }
 
-  // --- Handle updates ---
-  const updatedImages = extractImageUrls(req.files);
+  // Extract new images/videos
+  const updatedImages = extractMediaUrls(req.files?.images || []);
+  const updatedVideos = extractMediaUrls(req.files?.videos || []);
 
-  // Merge new data into product object
+  // Update fields
   product.name = req.body.name || product.name;
   product.description = req.body.description || product.description;
   product.category = req.body.category || product.category;
-  product.sku = req.body.sku || product.sku;
 
-  // Handle complex fields like variants (needs careful parsing)
   if (req.body.variants) {
     try {
       product.variants = JSON.parse(req.body.variants);
     } catch (error) {
       res.status(400);
-      throw new Error("Invalid variants data format (must be a JSON array)");
+      throw new Error("Invalid variants data format (must be JSON array)");
     }
   }
 
-  // Append new images to existing list (or replace entirely based on frontend logic)
   if (updatedImages.length > 0) {
-    // Simple append - frontend might send a flag to clear existing images
     product.images = [...product.images, ...updatedImages];
+  }
+
+  if (updatedVideos.length > 0) {
+    product.videos = [...product.videos, ...updatedVideos];
   }
 
   product.shippingCharge =
@@ -245,63 +237,63 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.deliveryTime = req.body.deliveryTime || product.deliveryTime;
 
   if (req.body.tags) {
-    product.tags = JSON.parse(req.body.tags);
+    product.tags =
+      typeof req.body.tags === "string"
+        ? JSON.parse(req.body.tags)
+        : req.body.tags;
   }
 
-  // Important: Force re-approval if crucial fields are changed (optional, but good practice)
+  // Require re-approval if updated
   product.isApproved = false;
 
-  // The pre('save') hook will run and recalculate finalPrice if variants changed
   const updatedProduct = await product.save();
   res.json(updatedProduct);
 });
 
 // @desc    Delete a product
 // @route   DELETE /api/products/admin/:id
-// @access  Private/Seller or Admin
+// @access  Private/Seller/Admin
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
-  if (product) {
-    // Authorization: Only the owner or an Admin can delete
-    if (
-      req.user.role !== "admin" &&
-      product.seller.toString() !== req.user._id.toString()
-    ) {
-      res.status(401);
-      throw new Error("Not authorized to delete this product");
-    }
-
-    await product.deleteOne(); // Use deleteOne()
-    res.json({ message: "Product removed" });
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+
+  if (
+    req.user.role !== "admin" &&
+    product.seller.toString() !== req.user._id.toString()
+  ) {
+    res.status(401);
+    throw new Error("Not authorized to delete this product");
+  }
+
+  await product.deleteOne();
+  res.json({ message: "Product removed successfully" });
 });
 
-// @desc    Admin: Approve a product for public display
+// @desc    Admin: Approve a product
 // @route   PUT /api/products/admin/approve/:id
 // @access  Private/Admin
 const approveProduct = asyncHandler(async (req, res) => {
-  // Only 'admin' role has access due to the route's middleware
   const product = await Product.findById(req.params.id);
-
-  if (product) {
-    product.isApproved = true;
-    await product.save();
-    res.json({
-      message: "Product approved successfully",
-      product: {
-        _id: product._id,
-        name: product.name,
-        isApproved: product.isApproved,
-      },
-    });
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+
+  product.isApproved = true;
+  await product.save();
+
+  res.json({
+    message: "Product approved successfully",
+    product: {
+      _id: product._id,
+      name: product.name,
+      isApproved: product.isApproved,
+    },
+  });
 });
 
 module.exports = {

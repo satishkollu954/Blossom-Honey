@@ -12,7 +12,7 @@ const {
 const { protect } = require("../Middleware/authMiddleware");
 
 // --- Updated: Import the factory function and create a review-specific uploader ---
-const createUploader = require("../Middleware/uploadMiddleware");
+const {createUploader} = require("../Middleware/uploadMiddleware");
 const reviewUploader = createUploader("reviews"); // Use the 'reviews' subfolder for organization
 
 // @desc    Fetch all APPROVED products (Public catalog view)

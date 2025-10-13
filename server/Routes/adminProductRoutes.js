@@ -14,7 +14,7 @@ const {
 const { protect, seller, admin } = require("../middleware/authMiddleware");
 
 // --- Updated: Import the factory function and create a product-specific uploader ---
-const createUploader = require("../middleware/uploadMiddleware");
+const {createUploader} = require("../middleware/uploadMiddleware");
 const productUploader = createUploader("products"); // Use the 'products' subfolder
 
 // @desc    Get all products (including unapproved) - For Admin/Seller Dashboard

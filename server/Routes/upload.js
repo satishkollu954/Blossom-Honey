@@ -1,98 +1,117 @@
 // server/Routes/upload.js
 const express = require("express");
 const router = express.Router();
-const createUploader = require("../Middleware/uploadMiddleware");
+const { createUploader } = require("../Middleware/uploadMiddleware");
 const { createProductReview } = require("../Controller/productController");
 const { protect } = require("../Middleware/authMiddleware");
 
-// Create specific upload instances for products, reviews, advertisements
+// Create specific upload instances for products, reviews, and advertisements
 const productUploader = createUploader("products");
 const reviewUploader = createUploader("reviews");
 const advertisementUploader = createUploader("advertisements");
 
-// ------------------------
-// Upload Product Images
-// ------------------------
+// Utility: format uploaded files
+const formatFiles = (files) =>
+  files.map((file) => ({
+    url: file.path || file.secure_url,
+    public_id: file.filename || file.public_id,
+    type: file.mimetype.startsWith("video") ? "video" : "image",
+  }));
+
+// =======================================================
+// 1️⃣ Upload Product Images & Videos
+// =======================================================
 router.post(
   "/upload/products",
-  productUploader.array("file", 10),
+  productUploader.fields([
+    { name: "images", maxCount: 10 },
+    { name: "videos", maxCount: 3 },
+  ]),
   async (req, res) => {
     try {
-      if (!req.files || req.files.length === 0) {
+      const images = formatFiles(req.files?.images || []);
+      const videos = formatFiles(req.files?.videos || []);
+
+      if (images.length === 0 && videos.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
       }
 
-      // Return uploaded file URLs and public IDs
-      const files = req.files.map((file) => ({
-        url: file.path,
-        public_id: file.filename,
-      }));
-
       res.json({
-        message: "Product images uploaded successfully",
-        files,
+        message: "Product media uploaded successfully",
+        images,
+        videos,
       });
     } catch (err) {
       console.error("Product upload error:", err);
-      res
-        .status(500)
-        .json({ message: "Product upload failed", error: err.message });
+      res.status(500).json({
+        message: "Product upload failed",
+        error: err.message,
+      });
     }
   }
 );
 
-// ------------------------
-// Upload Review Images
-// ------------------------
+// =======================================================
+// 2️⃣ Upload Review Images & Videos (and create review)
+// =======================================================
 router.post(
   "/reviews/:productId",
   protect,
-  reviewUploader.array("images", 5),
+  reviewUploader.fields([
+    { name: "images", maxCount: 5 },
+    { name: "videos", maxCount: 2 },
+  ]),
   async (req, res) => {
     try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ message: "No images uploaded" });
+      const images = formatFiles(req.files?.images || []);
+      const videos = formatFiles(req.files?.videos || []);
+
+      if (images.length === 0 && videos.length === 0) {
+        return res.status(400).json({ message: "No media uploaded" });
       }
 
-      // Attach uploaded image URLs to request body for the controller
-      req.body.images = req.files.map((file) => file.path);
-
-      // Call controller to save review
+      // Attach uploaded media URLs for controller
+      req.files = [...(req.files?.images || []), ...(req.files?.videos || [])];
       await createProductReview(req, res);
     } catch (err) {
       console.error("Review upload error:", err);
-      res
-        .status(500)
-        .json({ message: "Review upload failed", error: err.message });
+      res.status(500).json({
+        message: "Review upload failed",
+        error: err.message,
+      });
     }
   }
 );
 
-// ------------------------
-// Upload Advertisement Images
-// ------------------------
+// =======================================================
+// 3️⃣ Upload Advertisement Images & Videos
+// =======================================================
 router.post(
   "/upload/advertisements",
-  advertisementUploader.array("file", 5),
+  advertisementUploader.fields([
+    { name: "images", maxCount: 5 },
+    { name: "videos", maxCount: 2 },
+  ]),
   async (req, res) => {
     try {
-      if (!req.files || req.files.length === 0) {
+      const images = formatFiles(req.files?.images || []);
+      const videos = formatFiles(req.files?.videos || []);
+
+      if (images.length === 0 && videos.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
       }
-      const files = req.files.map((file) => ({
-        url: file.path,
-        public_id: file.filename,
-      }));
 
       res.json({
-        message: "Advertisement images uploaded successfully",
-        files,
+        message: "Advertisement media uploaded successfully",
+        images,
+        videos,
       });
     } catch (err) {
       console.error("Advertisement upload error:", err);
-      res
-        .status(500)
-        .json({ message: "Advertisement upload failed", error: err.message });
+      res.status(500).json({
+        message: "Advertisement upload failed",
+        error: err.message,
+      });
     }
   }
 );
