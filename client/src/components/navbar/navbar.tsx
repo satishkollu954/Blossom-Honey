@@ -1,27 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
 import { useCookies } from "react-cookie";
 
 export function Navbar() {
-    const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [cookies, , removeCookie] = useCookies(["role", "token"]);
     const [open, setOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     const role = cookies.role;
     const isLoggedIn = role === "user" || role === "admin";
 
-
-
-
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("click", handleClickOutside);
+        return () => document.removeEventListener("click", handleClickOutside);
+    }, []);
 
     const handleLogout = () => {
-
         removeCookie("role");
         removeCookie("token");
         window.location.href = "/login";
-    }
+    };
 
-    const toggleMenu = (): void => {
+    const toggleMenu = () => {
         setIsMenuOpen((prev) => !prev);
     };
 
@@ -30,87 +38,46 @@ export function Navbar() {
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
                 <div className="flex items-center justify-between h-16">
 
-                    {/* Logo / Brand */}
+                    {/* Logo */}
                     <Link to="/" className="flex items-center space-x-2">
                         <span className="font-serif text-2xl font-semibold text-amber-500 hover:text-amber-600 transition-colors duration-300">
                             Blossom Honey
                         </span>
                     </Link>
 
-                    {/* Desktop Navigation Links */}
+                    {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-8">
-                        <NavLink
-                            to="/"
-                            className={({ isActive }) =>
-                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                } transition-colors`
-                            }
-                        >
-                            Home
-                        </NavLink>
+                        {["Home", "Shop", "About", "Contact", "Our Story"].map((name) => (
+                            <NavLink
+                                key={name}
+                                to={name === "Home" ? "/" : `/${name.toLowerCase().replace(" ", "")}`}
+                                className={({ isActive }) =>
+                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"} transition-colors`
+                                }
+                            >
+                                {name}
+                            </NavLink>
+                        ))}
 
-                        <NavLink
-                            to="/shop"
-                            className={({ isActive }) =>
-                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                } transition-colors`
-                            }
-                        >
-                            Shop
-                        </NavLink>
+                        {role === "admin" && (
+                            <NavLink
+                                to="/admin"
+                                className={({ isActive }) =>
+                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"} transition-colors`
+                                }
+                            >
+                                Dashboard
+                            </NavLink>
+                        )}
 
-                        <NavLink
-                            to="/about"
-                            className={({ isActive }) =>
-                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                } transition-colors`
-                            }
-                        >
-                            About
-                        </NavLink>
+                        {role !== "admin" && (
+                            <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
+                                <ShoppingCart size={22} />
+                            </Link>
+                        )}
 
-                        <NavLink
-                            to="/contact"
-                            className={({ isActive }) =>
-                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                } transition-colors`
-                            }
-                        >
-                            Contact
-                        </NavLink>
-                        <NavLink
-                            to="/story"
-                            className={({ isActive }) =>
-                                `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                } transition-colors`
-                            }
-                        >
-                            Our Story
-                        </NavLink>
-
-                        {
-                            role === "admin" && (
-                                <NavLink
-                                    to="/admin"
-                                    className={({ isActive }) =>
-                                        `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                        } transition-colors`
-                                    }
-                                >
-                                    Dashboard
-                                </NavLink>
-                            )
-                        }
-
-                        {/* Cart Icon */}
-                        {
-                            role !== "admin" && (
-                                <Link to="/cart" className="text-gray-800 hover:text-amber-500 transition">
-                                    <ShoppingCart size={22} />
-                                </Link>
-                            )
-                        }
-                        <div className="relative">
+                        {/* Profile Icon with Dropdown */}
+                        <div className="relative" ref={dropdownRef}>
                             {!isLoggedIn ? (
                                 <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
                                     <User size={22} />
@@ -120,17 +87,15 @@ export function Navbar() {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setOpen(!open);
+                                            setOpen((prev) => !prev);
                                         }}
                                         className="text-gray-800 hover:text-amber-500 transition relative"
                                     >
                                         <User size={22} />
                                     </button>
 
-                                    {/* Dropdown Menu */}
                                     {open && (
                                         <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg p-2 z-50">
-                                            {/* Show Profile only if role === "user" */}
                                             {role === "user" && (
                                                 <Link
                                                     to="/profile"
@@ -140,7 +105,6 @@ export function Navbar() {
                                                     Profile
                                                 </Link>
                                             )}
-
                                             <button
                                                 onClick={handleLogout}
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
@@ -152,23 +116,13 @@ export function Navbar() {
                                 </>
                             )}
                         </div>
-
-
-
-
                     </div>
 
-                    {/* Right Section (Dark Mode + Mobile Menu Button) */}
+                    {/* Mobile Right Section */}
                     <div className="flex items-center space-x-4">
-                        {/* Dark Mode Toggle */}
-                        <button
-                            className="p-2 rounded-full hover:bg-gray-100 transition"
-                            aria-label="Toggle dark mode"
-                        >
+                        <button className="p-2 rounded-full hover:bg-gray-100 transition" aria-label="Toggle dark mode">
                             <Moon size={20} className="text-gray-800" />
                         </button>
-
-                        {/* Mobile Menu Toggle */}
                         <button
                             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition"
                             onClick={toggleMenu}
@@ -179,87 +133,47 @@ export function Navbar() {
                     </div>
                 </div>
 
-                {/* Mobile Dropdown Menu */}
+                {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 bg-white border-t border-gray-200 rounded-lg shadow-md">
                         <div className="flex flex-col space-y-2 px-6 py-4">
-                            <NavLink
-                                to="/"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                    } transition-colors`
-                                }
-                            >
-                                Home
-                            </NavLink>
-                            <NavLink
-                                to="/shop"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                    } transition-colors`
-                                }
-                            >
-                                Shop
-                            </NavLink>
-                            <NavLink
-                                to="/about"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                    } transition-colors`
-                                }
-                            >
-                                About
-                            </NavLink>
-                            <NavLink
-                                to="/contact"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                    } transition-colors`
-                                }
-                            >
-                                Contact
-                            </NavLink>
-                            <NavLink
-                                to="/story"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                    } transition-colors`
-                                }
-                            >
-                                Our Story
-                            </NavLink>
-                            {
-                                role === "admin" && (
-                                    <NavLink
-                                        to="/admin"
-                                        className={({ isActive }) =>
-                                            `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"
-                                            } transition-colors`
-                                        }
-                                    >
-                                        Dashboard
-                                    </NavLink>
-                                )
-                            }
+                            {["Home", "Shop", "About", "Contact", "Our Story"].map((name) => (
+                                <NavLink
+                                    key={name}
+                                    to={name === "Home" ? "/" : `/${name.toLowerCase().replace(" ", "")}`}
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"} transition-colors`
+                                    }
+                                >
+                                    {name}
+                                </NavLink>
+                            ))}
 
-                            {
-                                role != "admin" && (
-                                    <Link
-                                        to="/cart"
-                                        onClick={() => setIsMenuOpen(false)}
-                                        className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
-                                    >
-                                        <ShoppingCart size={20} />
+                            {role === "admin" && (
+                                <NavLink
+                                    to="/admin"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `font-medium ${isActive ? "text-amber-500" : "text-gray-800 hover:text-amber-500"} transition-colors`
+                                    }
+                                >
+                                    Dashboard
+                                </NavLink>
+                            )}
 
-                                    </Link>
-                                )
-                            }
-                            <div className="relative">
+                            {role !== "admin" && (
+                                <Link
+                                    to="/cart"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
+                                >
+                                    <ShoppingCart size={20} />
+                                </Link>
+                            )}
+
+                            {/* Profile for Mobile */}
+                            <div className="relative" ref={dropdownRef}>
                                 {!isLoggedIn ? (
                                     <Link to="/login" className="text-gray-800 hover:text-amber-500 transition">
                                         <User size={22} />
@@ -269,17 +183,15 @@ export function Navbar() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setOpen(!open);
+                                                setOpen((prev) => !prev);
                                             }}
                                             className="text-gray-800 hover:text-amber-500 transition relative"
                                         >
                                             <User size={22} />
                                         </button>
 
-                                        {/* Dropdown Menu */}
                                         {open && (
                                             <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg p-2 z-50">
-                                                {/* Show Profile only if role === "user" */}
                                                 {role === "user" && (
                                                     <Link
                                                         to="/profile"
@@ -289,7 +201,6 @@ export function Navbar() {
                                                         Profile
                                                     </Link>
                                                 )}
-
                                                 <button
                                                     onClick={handleLogout}
                                                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded"
@@ -301,8 +212,6 @@ export function Navbar() {
                                     </>
                                 )}
                             </div>
-
-
                         </div>
                     </div>
                 )}
