@@ -4,6 +4,7 @@ import { Lock, User } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom'; // <-- Import useLocation
 import { useCookies } from 'react-cookie';
+import { ToastContainer } from 'react-toastify';
 
 
 const AdminLoginSchema = Yup.object().shape({
@@ -59,6 +60,8 @@ export function AdminLogin() {
     return (
 
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+            <ToastContainer position="top-right" autoClose={1500} hideProgressBar />
+
             <div className="w-full max-w-md bg-white shadow-xl rounded-lg p-8">
                 <div className="text-center mb-6">
                     <h1 className="text-3xl font-semibold text-gray-800">Login Panel</h1>
@@ -133,7 +136,7 @@ export function AdminLogin() {
                         to="/forget"
                         className="text-gray-600 hover:text-yellow-600 transition-colors block"
                     >
-                        <strong className="font-semibold text-yellow-500 hover:text-yellow-600">Forget Password</strong>
+                        <strong className="font-semibold text-yellow-500 hover:text-yellow-600">Forgot Password</strong>
                     </Link>
                 </div>
             </div>

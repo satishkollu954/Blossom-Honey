@@ -10,10 +10,13 @@ import { AdminLogin } from "./components/Login/AdminLogin";
 import { UserRegister } from "./components/Register/Register";
 import { ForgetPassword } from "./components/forgetPassword/forgetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute/ProtectedRoute";
-import { AdminDashboard } from "./components/AdminDahsboard/AdminDashboard";
+
 import { Unauthorized } from "./components/unauthorized/unauthorized";
 import { NotFound } from "./components/NotFound/NotFound";
 import { UserProfile } from "./components/UserProfile/UserProfile";
+import AdminDashboard from "./components/AdminDahsboard/AdminDashboard";
+import UploadProduct from "./components/uploadproducts/UploadProducts";
+import ViewProducts from "./components/viewproducts/ViewProducts";
 
 
 function App() {
@@ -36,6 +39,22 @@ function App() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/addproduct"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <UploadProduct />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/viewproducts"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <ViewProducts />
               </ProtectedRoute>
             }
           />
