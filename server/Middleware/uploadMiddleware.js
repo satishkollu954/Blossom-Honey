@@ -3,18 +3,14 @@ const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-// --- Cloudinary Configuration (Runs only once) ---
-// Load environment variables for Cloudinary configuration
+// --- Cloudinary Configuration ---
 if (
   !process.env.CLOUDINARY_CLOUD_NAME ||
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
-  console.error(
-    "Cloudinary credentials are not fully configured in environment variables."
-  );
+  console.error("❌ Cloudinary credentials missing in .env");
 } else {
-  // Configure Cloudinary
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -24,46 +20,47 @@ if (
 }
 
 /**
- * Creates a configured multer upload instance for a specific Cloudinary folder.
- * * @param {string} folderName - The subfolder name to use within Cloudinary
- * (e.g., 'products', 'reviews', 'advertisements').
- * @returns {multer.Multer} The multer instance ready to be used in routes.
+ * Create an uploader for a specific folder (images/videos)
+ * @param {string} folderName - Cloudinary folder name
+ * @param {"image"|"video"} resourceType - Resource type (default: image)
+ * @returns multer instance
  */
-const createUploader = (folderName) => {
-  // Configure the storage engine for Multer with dynamic folder path
+const createUploader = (folderName, resourceType = "image") => {
   const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
+    cloudinary,
     params: {
-      // Main folder (root) + dynamic subfolder
       folder: `mern-dryfruits-ecommerce/${folderName}`,
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
-      // Create a unique public ID including the folder name and timestamp
+      resource_type: resourceType, // 👈 Allow images or videos
+      allowed_formats:
+        resourceType === "video"
+          ? ["mp4", "mov", "avi", "mkv", "webm"]
+          : ["jpg", "jpeg", "png", "webp"],
       public_id: (req, file) => {
         const fileName = file.originalname.split(".")[0].replace(/\s/g, "_");
-        const timestamp = Date.now();
-        return `${folderName}-${fileName}-${timestamp}`;
+        return `${folderName}-${Date.now()}-${fileName}`;
       },
     },
   });
 
-  // Create the upload instance
-  const upload = multer({
-    storage: storage,
+  return multer({
+    storage,
     limits: {
-      fileSize: 1024 * 1024 * 5, // 5MB limit
+      fileSize: resourceType === "video" ? 1024 * 1024 * 50 : 1024 * 1024 * 5, // 50MB for video, 5MB for image
     },
     fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith("image")) {
-        cb(null, true);
-      } else {
-        // Return error if file is not an image
-        cb(new Error("Only image files are allowed!"), false);
-      }
+      const type = file.mimetype.split("/")[0];
+      if (type === resourceType) cb(null, true);
+      else cb(new Error(`Only ${resourceType} files are allowed!`), false);
     },
   });
-
-  return upload;
 };
 
-// Export the factory function
-module.exports = createUploader;
+// --- Helper: Extract URLs from multer's Cloudinary output ---
+const extractFileUrls = (files) => {
+  if (Array.isArray(files)) {
+    return files.map((file) => file.path || file.secure_url).filter(Boolean);
+  }
+  return [];
+};
+
+module.exports = { createUploader, extractFileUrls };

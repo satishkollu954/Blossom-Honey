@@ -60,7 +60,8 @@ const productSchema = new mongoose.Schema(
 
     variants: [variantSchema],
 
-    images: [String], // general product-level images (e.g., lifestyle shots)
+    images: [String],
+    videos: [{ type: String }], // general product-level videos (e.g., lifestyle shots)
     seller: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Sellers",
