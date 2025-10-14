@@ -39,7 +39,7 @@ const variantSchema = new mongoose.Schema({
   discount: { type: Number, default: 0 },
   finalPrice: { type: Number },
   stock: { type: Number, required: true },
-  
+
   images: [String],
 });
 
@@ -64,7 +64,7 @@ const productSchema = new mongoose.Schema(
     videos: [{ type: String }], // general product-level videos (e.g., lifestyle shots)
     seller: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Sellers",
+      ref: "User",
       required: true,
     },
 

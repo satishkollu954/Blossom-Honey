@@ -9,6 +9,8 @@ const {
   deleteProduct,
   approveProduct,
   getAllProductsAdminView,
+  updateVariants,
+  deleteVariant,
 } = require("../Controller/productController");
 // Assuming these middleware functions exist
 const { protect, seller, admin } = require("../Middleware/authMiddleware");
@@ -49,6 +51,22 @@ router.put(
     { name: "variantImages", maxCount: 20 },
   ]), // Use the specific uploader instance
   updateProduct
+);
+
+
+router.put(
+  "/:productId/variant/:variantId",
+  protect,
+  seller,
+  upload.fields([{ name: "variantImages", maxCount: 5 }]),
+  updateVariants
+);
+
+router.delete(
+  "/:productId/variant/:variantId",
+  protect,
+  seller,
+  deleteVariant
 );
 
 // @desc    Delete a product
