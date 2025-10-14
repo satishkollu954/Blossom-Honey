@@ -27,7 +27,7 @@ export function Contact() {
         // 2. Set loading to true on submission start
         setIsLoading(true);
 
-        console.log("Contact form submitted:", data);
+
         axios.post(`http://localhost:3005/api/contact-Us`, data)
             .then((response) => {
                 toast.success("Message sent! We'll get back to you soon.");

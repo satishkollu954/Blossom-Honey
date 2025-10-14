@@ -242,16 +242,15 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @route   GET /api/products/admin
 // @access  Private/Seller/Admin
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
-  let query = {};
-  if (req.user.role === "seller") {
-    query.seller = req.user._id;
+  try {
+    const products = await Product.find()
+      .populate("seller", "name email role") // populate seller details
+      .populate("reviews.user", "name email"); // populate review user details
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500);
+    throw new Error("Server error fetching products");
   }
-
-  const products = await Product.find(query).select(
-    "name sku isApproved category createdAt"
-  );
-  console.log("==> ", products);
-  res.json(products);
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
