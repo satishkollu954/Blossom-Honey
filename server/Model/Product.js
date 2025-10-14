@@ -39,7 +39,7 @@ const variantSchema = new mongoose.Schema({
   discount: { type: Number, default: 0 },
   finalPrice: { type: Number },
   stock: { type: Number, required: true },
-  // Removed 'colors' and 'childAgeGroup' as they are not relevant to food products
+  
   images: [String],
 });
 

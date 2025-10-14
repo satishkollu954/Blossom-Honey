@@ -6,7 +6,7 @@ const { createProductReview } = require("../Controller/productController");
 const { protect } = require("../Middleware/authMiddleware");
 
 // Create specific upload instances for products, reviews, and advertisements
-const productUploader = createUploader("products");
+const productUploader = createUploader();
 const reviewUploader = createUploader("reviews");
 const advertisementUploader = createUploader("advertisements");
 

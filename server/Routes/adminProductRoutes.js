@@ -11,11 +11,11 @@ const {
   getAllProductsAdminView,
 } = require("../Controller/productController");
 // Assuming these middleware functions exist
-const { protect, seller, admin } = require("../middleware/authMiddleware");
+const { protect, seller, admin } = require("../Middleware/authMiddleware");
 
-// --- Updated: Import the factory function and create a product-specific uploader ---
-const { createUploader } = require("../middleware/uploadMiddleware");
+const { createUploader } = require("../Middleware/uploadMiddleware");
 const productUploader = createUploader("products"); // Use the 'products' subfolder
+const { upload } = require("../Middleware/newmiddleware");
 
 // @desc    Get all products (including unapproved) - For Admin/Seller Dashboard
 // @route   GET /api/products/admin
@@ -30,7 +30,10 @@ router.post(
   "/",
   protect,
   seller,
-  productUploader.array("productImages", 10), // Use the specific uploader instance
+  upload.fields([
+    { name: "productImages", maxCount: 10 },
+    { name: "variantImages", maxCount: 20 },
+  ]),
   createProduct
 );
 
