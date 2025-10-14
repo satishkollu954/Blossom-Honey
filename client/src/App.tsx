@@ -17,6 +17,7 @@ import { UserProfile } from "./components/UserProfile/UserProfile";
 import AdminDashboard from "./components/AdminDahsboard/AdminDashboard";
 import UploadProduct from "./components/uploadproducts/UploadProducts";
 import ViewProducts from "./components/viewproducts/ViewProducts";
+import HoneyStory from "./components/honeystory/HoneyStory";
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
           <Route path="/login" element={<AdminLogin />} />
           <Route path="/register" element={<UserRegister />} />
           <Route path="/forget" element={<ForgetPassword />} />
+          <Route path="/ourstory" element={<HoneyStory />} />
 
           {/* Protected Admin Route */}
           <Route
