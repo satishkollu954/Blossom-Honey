@@ -163,8 +163,8 @@ const deleteAddress = asyncHandler(async (req, res) => {
 
 // ✅ Fetch all users (with addresses)
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find()
-    .select("-password -resetPasswordToken -resetPasswordExpire") // exclude sensitive fields
+  const users = await User.find({ role: { $ne: "admin" } })
+    .select("-resetPasswordToken -resetPasswordExpire") // exclude sensitive fields
     .sort({ createdAt: -1 });
 
   res.status(200).json({
