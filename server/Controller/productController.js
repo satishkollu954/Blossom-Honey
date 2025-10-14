@@ -271,8 +271,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   // Extract new images/videos
-  const updatedImages = extractMediaUrls(req.files?.images || []);
-  const updatedVideos = extractMediaUrls(req.files?.videos || []);
+  //const updatedImages = extractMediaUrls(req.files?.images || []);
+  //const updatedVideos = extractMediaUrls(req.files?.videos || []);
 
   // Update fields
   product.name = req.body.name || product.name;

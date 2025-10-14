@@ -25,7 +25,7 @@ router.put("/addresses/:id", protect, updateAddress);
 router.delete("/addresses/:id", protect, deleteAddress);
 
 // ✅ Get all users (Admin only)
-router.get("/", admin, getAllUsers);
+router.get("/", protect, admin, getAllUsers);
 
 // ✅ Get specific user by ID (Admin only)
 router.get("/users/:id", admin, getUserById);

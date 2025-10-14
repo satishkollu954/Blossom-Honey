@@ -10,11 +10,14 @@ import {
 } from "lucide-react";
 import UploadProduct from "../uploadproducts/UploadProducts";
 import ViewProducts from "../viewproducts/ViewProducts";
+import { useCookies } from "react-cookie";
+import UsersList from "../AllUsers/AllUsers";
 
 export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState("upload");
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [cookie, , removeCookie] = useCookies(["token", "role"]);
 
     // Detect screen resize (to toggle mobile mode)
     useEffect(() => {
@@ -29,8 +32,8 @@ export default function AdminDashboard() {
     };
 
     const handleLogout = () => {
-        // Logout logic here
-        console.log("Logged out");
+        removeCookie("token");
+        removeCookie("role");
     };
 
     const renderContent = () => {
@@ -40,7 +43,7 @@ export default function AdminDashboard() {
             case "products":
                 return <ViewProducts />;
             case "users":
-                return <div className="p-6">👥 View Users Component Here</div>;
+                return <UsersList />;
             case "orders":
                 return <div className="p-6">📑 View Orders Component Here</div>;
             default:

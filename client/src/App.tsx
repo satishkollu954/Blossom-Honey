@@ -18,6 +18,7 @@ import AdminDashboard from "./components/AdminDahsboard/AdminDashboard";
 import UploadProduct from "./components/uploadproducts/UploadProducts";
 import ViewProducts from "./components/viewproducts/ViewProducts";
 import HoneyStory from "./components/honeystory/HoneyStory";
+import UsersList from "./components/AllUsers/AllUsers";
 
 
 function App() {
@@ -36,11 +37,20 @@ function App() {
           <Route path="/ourstory" element={<HoneyStory />} />
 
           {/* Protected Admin Route */}
+
           <Route
             path="/admin"
             element={
               <ProtectedRoute allowedRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/allusers"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <UsersList />
               </ProtectedRoute>
             }
           />

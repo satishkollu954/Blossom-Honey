@@ -4,7 +4,7 @@ import { Lock, User } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom'; // <-- Import useLocation
 import { useCookies } from 'react-cookie';
-import { ToastContainer } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 
 
 const AdminLoginSchema = Yup.object().shape({
@@ -42,14 +42,17 @@ export function AdminLogin() {
                     setCookie("role", user.role);
                     setCookie("token", token);
 
+
+                    toast.success(`Welcome back, ${user.name}` || "User");
                     if (user.role === 'admin') {
-                        setTimeout(() => navigate("/admin", { replace: true }), 100);
+                        setTimeout(() => navigate("/admin", { replace: true }), 800);
                     } else {
-                        setTimeout(() => navigate(fromPath, { replace: true }), 100);
+                        setTimeout(() => navigate(fromPath, { replace: true }), 800);
                     }
                 })
                 .catch((error) => {
                     console.error("Login failed:", error);
+                    toast.error("Invalid credentials. Please try again.");
 
                 });
 
