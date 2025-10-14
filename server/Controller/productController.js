@@ -165,9 +165,7 @@ const getApprovedProducts = asyncHandler(async (req, res) => {
   res.json({ products, page, pages: Math.ceil(count / pageSize), count });
 });
 
-// @desc    Fetch single APPROVED product by ID
-// @route   GET /api/products/:id
-// @access  Public
+
 const getProductById = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
@@ -189,9 +187,6 @@ const getProductById = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Create new review
-// @route   POST /api/products/:id/reviews
-// @access  Private/User
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
   const reviewMedia = extractMediaUrls(req.files);
@@ -234,13 +229,6 @@ const createProductReview = asyncHandler(async (req, res) => {
   }
 });
 
-// =========================================================================
-// 2. ADMIN/SELLER FUNCTIONS (Used in routes/adminProductRoutes.js)
-// =========================================================================
-
-// @desc    Get all products (Admin/Seller Dashboard)
-// @route   GET /api/products/admin
-// @access  Private/Seller/Admin
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
   try {
     const products = await Product.find()
