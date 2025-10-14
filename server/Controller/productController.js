@@ -10,6 +10,7 @@ const {
 const { cloudinary } = require("../Middleware/newmiddleware");
 
 // Helper: upload buffer to Cloudinary
+/*
 const uploadToCloudinary = (fileBuffer, folder, filename) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -26,6 +27,7 @@ const uploadToCloudinary = (fileBuffer, folder, filename) =>
     );
     stream.end(fileBuffer);
   });
+*/
 
 // Generate SKU
 function generateSKU(productName) {
@@ -92,7 +94,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const uploadedProductImages = [];
   if (req.files?.productImages) {
     for (let file of req.files.productImages) {
-      const url = await uploadToCloudinary(
+      const url = await createUploader(
         file.buffer,
         `BlossomHoney/products/${productId}/images`,
         file.originalname.split(".")[0] + "-" + Date.now()
@@ -109,7 +111,7 @@ const createProduct = asyncHandler(async (req, res) => {
       const uploadedImages = [];
 
       // Get number of images this variant has from frontend (optional)
-      const numImages = (product.variants[i].images?.length || 0);
+      const numImages = product.variants[i].images?.length || 0;
 
       // Only upload if images exist
       if (numImages > 0) {
@@ -117,7 +119,7 @@ const createProduct = asyncHandler(async (req, res) => {
           const file = req.files.variantImages[imageIndex];
           if (!file) continue;
 
-          const url = await uploadToCloudinary(
+          const url = await createUploader(
             file.buffer,
             `BlossomHoney/products/${productId}/variants/${i}`,
             file.originalname.split(".")[0] + "-" + Date.now()
@@ -148,8 +150,6 @@ const createProduct = asyncHandler(async (req, res) => {
     product: savedProduct,
   });
 });
-
-
 
 const getApprovedProducts = asyncHandler(async (req, res) => {
   const pageSize = 12;
@@ -250,7 +250,7 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
   const products = await Product.find(query)
     .select("name sku isApproved category createdAt")
     .populate("seller", "name email");
-
+  console.log("==> ", products);
   res.json(products);
 });
 
@@ -279,7 +279,6 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.name = req.body.name || product.name;
   product.description = req.body.description || product.description;
   product.category = req.body.category || product.category;
-
   if (req.body.variants) {
     try {
       product.variants = JSON.parse(req.body.variants);

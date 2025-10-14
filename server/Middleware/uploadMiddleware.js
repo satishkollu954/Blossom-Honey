@@ -18,38 +18,22 @@ cloudinary.config({
  * @param {string} subFolder - "images" or "variants"
  * @param {"image"|"video"} resourceType
 */
-const createUploader = (
-  foldername,
-  productId,
-  subFolder,
-  resourceType = "image"
-) => {
-  const storage = new CloudinaryStorage({
-    cloudinary,
-    params: {
-      folder: `BlossomHoney/${foldername}/${productId}/${subFolder}`,
-      resource_type: resourceType,
-      allowed_formats:
-        resourceType === "video"
-          ? ["mp4", "mov", "avi", "mkv", "webm"]
-          : ["jpg", "jpeg", "png", "webp"],
-      public_id: (req, file) =>
-        `${file.originalname.split(".")[0]}-${Date.now()}`,
-    },
+const createUploader = (fileBuffer, folder, filename) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder, // folder path
+        public_id: filename, // file name
+        resource_type: "image", // ensure it’s treated as image
+        overwrite: true,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(fileBuffer);
   });
-
-  return multer({
-    storage,
-    limits: {
-      fileSize: resourceType === "video" ? 50 * 1024 * 1024 : 5 * 1024 * 1024,
-    },
-    fileFilter: (req, file, cb) => {
-      const type = file.mimetype.split("/")[0];
-      if (type === resourceType) cb(null, true);
-      else cb(new Error(`Only ${resourceType} files are allowed!`), false);
-    },
-  });
-};
 
 // Helper to extract Cloudinary URLs
 const extractFileUrls = (files) => {

@@ -1,4 +1,5 @@
 // server/Routes/upload.js
+/*
 const express = require("express");
 const router = express.Router();
 const { createUploader } = require("../Middleware/uploadMiddleware");
@@ -117,3 +118,4 @@ router.post(
 );
 
 module.exports = router;
+*/
