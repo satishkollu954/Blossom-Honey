@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Edit, Trash2, Search, ImagePlus, Loader2, Check, X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { useCookies } from "react-cookie";
 
 interface Variant {
@@ -36,12 +36,11 @@ export default function ViewProducts() {
     const [editProductId, setEditProductId] = useState<string | null>(null);
     const [editVariantId, setEditVariantId] = useState<string | null>(null);
     const [editedProduct, setEditedProduct] = useState<Partial<Product>>({});
+    const [newImages, setNewImages] = useState<File[]>([]);
     const [editedVariant, setEditedVariant] = useState<Partial<Variant>>({});
     const [cookies] = useCookies(["token"]);
 
-    // Fetch products
-    useEffect(() => {
-        console.log("----");
+    function getProducts() {
         fetch(`http://localhost:3005/api/products/admin/`, {
             headers: { Authorization: `Bearer ${cookies.token}` },
         })
@@ -52,33 +51,60 @@ export default function ViewProducts() {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, []);
+    }
+
+    useEffect(() => {
+        getProducts();
+    }, [])
+
+
 
     // Update product
     const handleUpdateProduct = async (id: string) => {
         setActionLoading(id);
         try {
+            const formData = new FormData();
+
+            // Append text fields
+            formData.append("name", editedProduct.name || "");
+            formData.append("description", editedProduct.description || "");
+
+            // ✅ If new images selected, append them
+            if (newImages.length > 0) {
+                newImages.forEach((img) => formData.append("productImages", img));
+            }
+
+
             const res = await fetch(`http://localhost:3005/api/products/admin/${id}`, {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
+
                     Authorization: `Bearer ${cookies.token}`,
+
                 },
-                body: JSON.stringify(editedProduct),
+                body: formData,
             });
-            if (res.ok) {
+            console.log(";;;;", res.status);
+
+            if (res.status == 200) {
+                const updated = await res.json();
                 setProducts((prev) =>
-                    prev.map((p) => (p._id === id ? { ...p, ...editedProduct } as Product : p))
+                    prev.map((p) => (p._id === id ? updated : p))
                 );
                 toast.success("Product updated successfully");
+                getProducts();
                 setEditProductId(null);
-            } else toast.error("Failed to update product");
-        } catch {
+            } else {
+                toast.error("Failed to update product");
+            }
+        } catch (err) {
+            console.error(err);
             toast.error("Error updating product");
         } finally {
             setActionLoading(null);
         }
     };
+
 
     // Update variant
     const handleUpdateVariant = async (productId: string, variantId: string) => {
@@ -169,39 +195,13 @@ export default function ViewProducts() {
         }
     };
 
-    // // Upload images
-    // const handleImageUpload = async (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    //     const files = e.target.files;
-    //     if (!files || files.length === 0) return;
-    //     setActionLoading(productId);
 
-    //     const formData = new FormData();
-    //     Array.from(files).forEach((file) => formData.append("images", file));
-
-    //     try {
-    //         const res = await fetch(
-    //             `http://localhost:3005/api/products/admin/${productId}/images`,
-    //             {
-    //                 method: "POST",
-    //                 headers: { Authorization: `Bearer ${cookies.token}` },
-    //                 body: formData,
-    //             }
-    //         );
-    //         if (res.ok) toast.success("Images uploaded successfully");
-    //         else toast.error("Failed to upload images");
-    //     } catch {
-    //         toast.error("Error uploading images");
-    //     } finally {
-    //         setActionLoading(null);
-    //     }
-    // };
-
-    const filteredProducts = products.filter(
-        (p) =>
-            p.name.toLowerCase().includes(search.toLowerCase()) ||
-            p.category.toLowerCase().includes(search.toLowerCase()) ||
-            p.sku.toLowerCase().includes(search.toLowerCase())
+    const filteredProducts = products.filter((p) =>
+        (p.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+        (p.category?.toLowerCase() || "").includes(search.toLowerCase()) ||
+        (p.sku?.toLowerCase() || "").includes(search.toLowerCase())
     );
+
 
     if (loading)
         return (
@@ -213,6 +213,7 @@ export default function ViewProducts() {
 
     return (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+            <ToastContainer position="top-right" autoClose={1500} hideProgressBar />
             {/* Search Bar */}
             <div className="flex justify-between items-center mb-6">
                 <div className="relative w-full max-w-md">
@@ -238,9 +239,10 @@ export default function ViewProducts() {
                             className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition"
                         >
                             {/* Product Header */}
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                {/* Left side — Product Info */}
                                 {editProductId === product._id ? (
-                                    <div className="flex flex-col gap-2 w-full">
+                                    <div className="flex flex-col gap-2 w-full sm:w-2/3">
                                         <input
                                             className="border p-2 rounded"
                                             defaultValue={product.name}
@@ -261,6 +263,17 @@ export default function ViewProducts() {
                                                 })
                                             }
                                         />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            name="productImages"
+                                            onChange={(e) => setNewImages(Array.from(e.target.files || []))}
+                                            className="mt-2 border p-2 rounded"
+                                        />
+
+
+
                                         <div className="flex gap-2 mt-2">
                                             <button
                                                 disabled={actionLoading === product._id}
@@ -283,14 +296,34 @@ export default function ViewProducts() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-amber-700">
-                                            {product.name}
-                                        </h2>
+                                    <div className="flex flex-col w-full sm:w-2/3">
+                                        <h2 className="text-lg font-semibold text-amber-700">{product.name}</h2>
                                         <p className="text-sm text-gray-600">{product.description}</p>
+
+                                        {/* ✅ Product Images (in header) */}
+                                        {product.images && product.images.length > 0 ? (
+                                            <div className="mt-3 flex flex-wrap gap-3">
+                                                {product.images.slice(0, 3).map((img: string, i: number) => (
+                                                    <img
+                                                        key={i}
+                                                        src={img}
+                                                        alt={product.name}
+                                                        className="w-20 h-20 object-cover rounded-lg border hover:scale-105 transition-transform"
+                                                    />
+                                                ))}
+                                                {product.images.length > 3 && (
+                                                    <span className="text-gray-500 text-sm self-center">
+                                                        +{product.images.length - 3} more
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-400 italic mt-2">No images available</p>
+                                        )}
                                     </div>
                                 )}
 
+                                {/* Right side — Actions */}
                                 {editProductId !== product._id && (
                                     <div className="flex gap-2">
                                         <button
@@ -317,6 +350,7 @@ export default function ViewProducts() {
                                     </div>
                                 )}
                             </div>
+
 
                             {/* Variants */}
                             <div className="mt-4">

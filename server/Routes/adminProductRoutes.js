@@ -15,7 +15,6 @@ const {
 // Assuming these middleware functions exist
 const { protect, seller, admin } = require("../Middleware/authMiddleware");
 
-
 //const productUploader = createUploader("products"); // Use the 'products' subfolder
 const { upload } = require("../Middleware/newmiddleware");
 
@@ -53,7 +52,6 @@ router.put(
   updateProduct
 );
 
-
 router.put(
   "/:productId/variant/:variantId",
   protect,
@@ -62,12 +60,7 @@ router.put(
   updateVariants
 );
 
-router.delete(
-  "/:productId/variant/:variantId",
-  protect,
-  seller,
-  deleteVariant
-);
+router.delete("/:productId/variant/:variantId", protect, seller, deleteVariant);
 
 // @desc    Delete a product
 // @route   DELETE /api/products/admin/:id

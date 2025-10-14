@@ -242,8 +242,11 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  const { productId } = req.params;
-  const product = await Product.findById(productId);
+  console.log("request body", req.body);
+  console.log("files", req.files);
+  console.log("id =", req.params);
+  const { id } = req.params;
+  const product = await Product.findById(id);
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
@@ -268,7 +271,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     for (let file of req.files.productImages) {
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${productId}/images`,
+        `BlossomHoney/products/${id}/images`,
         file.originalname.split(".")[0] + "-" + Date.now()
       );
       uploadedProductImages.push(url);
