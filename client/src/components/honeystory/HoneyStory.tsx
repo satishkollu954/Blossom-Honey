@@ -39,40 +39,60 @@ export default function HoneyStory() {
         },
     ];
 
-    const farmingImages = [
-        "/images/farm/farm1.jpg",
-        "/images/farm/farm2.jpg",
-        "/images/farm/farm3.jpg",
-        "/images/farm/farm4.jpg",
+    const farmData = [
+        {
+            img: "src/assets/home-bg.png",
+            title: "Blooming Fields",
+            desc: "Our bees collect nectar from pesticide-free, lush flower fields that bloom all year round.",
+        },
+        {
+            img: "src/assets/honey1.png",
+            title: "Sustainable Beekeeping",
+            desc: "We ensure the hives are nurtured naturally, keeping the bees safe and the environment thriving.",
+        },
+        {
+            img: "src/assets/honey2.png",
+            title: "Honey Extraction",
+            desc: "Our honey is extracted manually with care to preserve all nutrients and natural flavors.",
+        },
+
     ];
 
     return (
-        <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-10">
+        <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-16">
             {/* Introduction Section */}
             <section className="text-center space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-amber-700">
+                <h1 className="text-4xl md:text-5xl font-bold text-amber-700">
                     The Story Behind Our Honey 🍯
                 </h1>
-                <p className="text-gray-600 max-w-2xl mx-auto">
+                <p className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto">
                     At <span className="font-semibold">Blossom Honey</span>, our journey begins in the lush
-                    countryside where nature thrives. We believe in sustainable beekeeping — where every drop
-                    of honey reflects the harmony between bees, flowers, and our hardworking farmers.
+                    countryside where nature thrives. Sustainable beekeeping ensures every drop of honey reflects
+                    the harmony between bees, flowers, and our hardworking farmers.
                 </p>
             </section>
 
-            {/* Farming Image Gallery */}
+            {/* Farm Zigzag Section */}
             <section>
-                <h2 className="text-2xl font-semibold text-amber-700 mb-4 text-center">
-                    Our Bee Farms
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {farmingImages.map((img, index) => (
-                        <div key={index} className="overflow-hidden rounded-2xl shadow-md">
-                            <img
-                                src={img}
-                                alt={`Farm ${index + 1}`}
-                                className="w-full h-56 object-cover hover:scale-105 transition-transform duration-300"
-                            />
+                <h2 className="text-3xl font-semibold text-amber-700 mb-10 text-center">Our Bee Farms</h2>
+                <div className="space-y-16">
+                    {farmData.map((farm, index) => (
+                        <div
+                            key={index}
+                            className={`flex flex-col md:flex-row items-center gap-6 ${index % 2 === 0 ? "" : "md:flex-row-reverse"
+                                }`}
+                        >
+                            <div className="md:w-1/2 overflow-hidden rounded-3xl shadow-lg hover:scale-105 transition-transform duration-300">
+                                <img
+                                    src={farm.img}
+                                    alt={farm.title}
+                                    className="w-full h-72 md:h-96 object-cover"
+                                />
+                            </div>
+                            <div className="md:w-1/2 text-center md:text-left space-y-4">
+                                <h3 className="text-2xl font-bold text-amber-700">{farm.title}</h3>
+                                <p className="text-gray-600">{farm.desc}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -80,68 +100,64 @@ export default function HoneyStory() {
 
             {/* Honey Extraction Video */}
             <section className="text-center">
-                <h2 className="text-2xl font-semibold text-amber-700 mb-4">
-                    How We Extract Pure Honey
-                </h2>
-
+                <h2 className="text-3xl font-semibold text-amber-700 mb-6">How We Extract Pure Honey</h2>
                 {!showVideo ? (
                     <div
                         onClick={() => setShowVideo(true)}
-                        className="relative w-full max-w-3xl mx-auto cursor-pointer group"
+                        className="relative w-full max-w-4xl mx-auto cursor-pointer group rounded-3xl overflow-hidden shadow-xl"
                     >
                         <img
                             src="/images/extraction-thumbnail.jpg"
                             alt="Honey Extraction"
-                            className="w-full h-64 md:h-96 object-cover rounded-2xl shadow-lg"
+                            className="w-full h-64 md:h-96 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl group-hover:bg-black/60 transition">
-                            <PlayCircle className="text-white" size={60} />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/60 transition">
+                            <PlayCircle className="text-white" size={70} />
                         </div>
                     </div>
                 ) : (
-                    <iframe
-                        className="w-full h-full"
-                        src="https://www.youtube.com/embed/abcd1234"
-                        title="Honey Extraction Process"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
+                    <div className="relative w-full max-w-4xl mx-auto" style={{ paddingTop: "35.25%" }}>
+                        <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-3xl shadow-lg"
+                            src="https://www.youtube.com/embed/KBHeypHgv_0"
+                            title="Honey Extraction Process"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        />
+                    </div>
                 )}
-
-                <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-                    Watch how our honey is gently extracted from natural honeycombs — no additives, no
-                    heating, just raw purity.
+                <p className="text-gray-600 mt-4 max-w-3xl mx-auto">
+                    Watch how our honey is gently extracted from natural honeycombs — no additives, no heating,
+                    just raw purity.
                 </p>
             </section>
 
             {/* Farmers Section */}
             <section>
-                <h2 className="text-2xl font-semibold text-amber-700 mb-6 text-center">
-                    Meet Our Farmers
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <h2 className="text-3xl font-semibold text-amber-700 mb-10 text-center">Meet Our Farmers</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                     {farmers.map((farmer) => (
                         <div
                             key={farmer.id}
-                            className="bg-white rounded-2xl shadow-md hover:shadow-lg p-4 text-center transition"
+                            className="bg-white rounded-3xl shadow-xl hover:shadow-2xl p-6 text-center transition duration-300"
                         >
                             <img
                                 src={farmer.image}
                                 alt={farmer.name}
                                 className="w-32 h-32 mx-auto rounded-full object-cover mb-4 border-4 border-amber-400"
                             />
-                            <h3 className="text-lg font-semibold text-amber-700">{farmer.name}</h3>
+                            <h3 className="text-xl font-semibold text-amber-700">{farmer.name}</h3>
                             <p className="text-sm text-gray-500 mb-2">{farmer.role}</p>
-                            <p className="text-sm text-gray-600">{farmer.description}</p>
+                            <p className="text-gray-600 text-sm">{farmer.description}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
             {/* Closing Note */}
-            <section className="text-center py-6 bg-amber-50 rounded-2xl shadow-inner">
-                <h3 className="text-xl font-semibold text-amber-700 mb-2">Sustainability Promise 🌿</h3>
-                <p className="text-gray-700 max-w-2xl mx-auto">
+            <section className="text-center py-8 bg-gradient-to-r from-amber-50 to-amber-100 rounded-3xl shadow-inner">
+                <h3 className="text-2xl font-semibold text-amber-700 mb-3">Sustainability Promise 🌿</h3>
+                <p className="text-gray-700 max-w-3xl mx-auto">
                     Our mission is to protect the bees, empower local farmers, and deliver authentic honey
                     straight from the hive to your home.
                 </p>
