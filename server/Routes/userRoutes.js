@@ -28,6 +28,6 @@ router.delete("/addresses/:id", protect, deleteAddress);
 router.get("/", protect, admin, getAllUsers);
 
 // ✅ Get specific user by ID (Admin only)
-router.get("/users/:id", admin, getUserById);
+router.get("/users/:id", protect, admin, getUserById);
 
 module.exports = router;

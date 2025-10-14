@@ -254,65 +254,148 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    res.status(404);
-    throw new Error("Invalid product ID");
-  }
-
-  const product = await Product.findById(req.params.id);
+  const { productId } = req.params;
+  const product = await Product.findById(productId);
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
 
-  if (product.seller.toString() !== req.user._id.toString()) {
-    res.status(401);
-    throw new Error("Not authorized to update this product");
-  }
+  // --- Update basic fields ---
+  const updatableFields = [
+    "name",
+    "description",
+    "category",
+    "shippingCharge",
+    "deliveryTime",
+    "tags",
+  ];
+  updatableFields.forEach((field) => {
+    if (req.body[field] !== undefined) product[field] = req.body[field];
+  });
 
-  // Extract new images/videos
-  //const updatedImages = extractMediaUrls(req.files?.images || []);
-  //const updatedVideos = extractMediaUrls(req.files?.videos || []);
-
-  // Update fields
-  product.name = req.body.name || product.name;
-  product.description = req.body.description || product.description;
-  product.category = req.body.category || product.category;
-  if (req.body.variants) {
-    try {
-      product.variants = JSON.parse(req.body.variants);
-    } catch (error) {
-      res.status(400);
-      throw new Error("Invalid variants data format (must be JSON array)");
+  // --- Update product images ---
+  if (req.files?.productImages) {
+    const uploadedProductImages = [];
+    for (let file of req.files.productImages) {
+      const url = await createUploader(
+        file.buffer,
+        `BlossomHoney/products/${productId}/images`,
+        file.originalname.split(".")[0] + "-" + Date.now()
+      );
+      uploadedProductImages.push(url);
     }
+    product.images = uploadedProductImages;
   }
 
-  if (updatedImages.length > 0) {
-    product.images = [...product.images, ...updatedImages];
+  await product.save();
+
+  res.status(200).json({
+    message: "Product updated successfully",
+    product,
+  });
+});
+
+const updateVariants = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
   }
 
-  if (updatedVideos.length > 0) {
-    product.videos = [...product.videos, ...updatedVideos];
+  let variantsData = [];
+  try {
+    variantsData =
+      typeof req.body.variants === "string"
+        ? JSON.parse(req.body.variants)
+        : req.body.variants;
+  } catch (err) {
+    res.status(400);
+    throw new Error("Invalid variants data format");
   }
 
-  product.shippingCharge =
-    req.body.shippingCharge !== undefined
-      ? req.body.shippingCharge
-      : product.shippingCharge;
-  product.deliveryTime = req.body.deliveryTime || product.deliveryTime;
-
-  if (req.body.tags) {
-    product.tags =
-      typeof req.body.tags === "string"
-        ? JSON.parse(req.body.tags)
-        : req.body.tags;
+  if (!Array.isArray(variantsData)) {
+    res.status(400);
+    throw new Error("Variants should be an array");
   }
 
-  // Require re-approval if updated
-  product.isApproved = false;
+  let imageIndex = 0; // for req.files.variantImages if provided
+  const flatImages = req.files?.variantImages || [];
 
-  const updatedProduct = await product.save();
-  res.json(updatedProduct);
+  variantsData.forEach((update) => {
+    const variantIndex = product.variants.findIndex(
+      (v) => v._id.toString() === update.variantId
+    );
+    if (variantIndex === -1) return; // skip invalid variantId
+
+    const variant = product.variants[variantIndex];
+
+    // --- Update fields ---
+    ["weight", "type", "packaging", "price", "discount", "stock"].forEach(
+      (field) => {
+        if (update[field] !== undefined) {
+          variant[field] = update[field];
+        }
+      }
+    );
+
+    // --- Recalculate finalPrice ---
+    variant.finalPrice = Math.round(
+      variant.price - (variant.price * (variant.discount || 0)) / 100
+    );
+
+    // --- Update images ---
+    if (update.numImages && flatImages.length > imageIndex) {
+      const uploadedImages = [];
+      for (let i = 0; i < update.numImages; i++) {
+        const file = flatImages[imageIndex];
+        if (!file) break;
+
+        const url = createUploader(
+          file.buffer,
+          `BlossomHoney/products/${productId}/variants/${variantIndex}`,
+          file.originalname.split(".")[0] + "-" + Date.now()
+        );
+        uploadedImages.push(url);
+        imageIndex++;
+      }
+      variant.images = uploadedImages;
+    }
+  });
+
+  await product.save();
+
+  res.status(200).json({
+    message: "Variants updated successfully",
+    variants: product.variants,
+  });
+});
+
+const deleteVariant = asyncHandler(async (req, res) => {
+  const { productId, variantId } = req.params;
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  const variantIndex = product.variants.findIndex(
+    (v) => v._id.toString() === variantId
+  );
+  if (variantIndex === -1) {
+    res.status(404);
+    throw new Error("Variant not found");
+  }
+
+  product.variants.splice(variantIndex, 1);
+  await product.save();
+
+  res.status(200).json({
+    message: "Variant deleted successfully",
+  });
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {
@@ -364,4 +447,6 @@ module.exports = {
   deleteProduct,
   approveProduct,
   getAllProductsAdminView,
+  updateVariants,
+  deleteVariant,
 };
