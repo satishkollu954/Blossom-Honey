@@ -37,7 +37,7 @@ app.use(cookieParser());
 app.use("/api/contact-Us", contactUsRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/products/admin", adminProductRoutes);
-app.use("/api/upload", uploadRoutes);
+//app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 

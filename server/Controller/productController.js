@@ -2,24 +2,155 @@
 const asyncHandler = require("express-async-handler");
 const Product = require("../Model/Product");
 const mongoose = require("mongoose");
+const {
+  createUploader,
+  extractFileUrls,
+} = require("../Middleware/uploadMiddleware");
+// =========================================================================
+const { cloudinary } = require("../Middleware/newmiddleware");
 
-// --- Helper function to extract URLs from multer/Cloudinary output ---
-const extractMediaUrls = (files) => {
-  if (files && Array.isArray(files)) {
-    return files
-      .map((file) => file.path || file.secure_url)
-      .filter((url) => url);
+// Helper: upload buffer to Cloudinary
+const uploadToCloudinary = (fileBuffer, folder, filename) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder, // folder path
+        public_id: filename, // file name
+        resource_type: "image", // ensure it’s treated as image
+        overwrite: true,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(fileBuffer);
+  });
+
+// Generate SKU
+function generateSKU(productName) {
+  const prefix = productName.slice(0, 3).toUpperCase();
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${random}`;
+}
+
+// CREATE PRODUCT WITH IMAGES
+const createProduct = asyncHandler(async (req, res) => {
+  console.log("Request body:", req.body);
+  console.log("Files:", req.files);
+
+  // --- Parse variants ---
+  let variantsData = [];
+  if (req.body.variants) {
+    try {
+      variantsData =
+        typeof req.body.variants === "string"
+          ? JSON.parse(req.body.variants)
+          : req.body.variants;
+    } catch (err) {
+      res.status(400);
+      throw new Error("Invalid variants data format");
+    }
   }
-  return [];
-};
 
-// =========================================================================
-// 1. PUBLIC/USER FUNCTIONS (Used in routes/productRoutes.js)
-// =========================================================================
+  // --- Parse tags ---
+  let tagsData = [];
+  if (req.body.tags) {
+    tagsData =
+      typeof req.body.tags === "string"
+        ? JSON.parse(req.body.tags)
+        : req.body.tags;
+  }
 
-// @desc    Fetch all APPROVED products (Public catalog view)
-// @route   GET /api/products
-// @access  Public
+  const sellerId = req.user._id;
+  const isApproved = req.user.role === "admin";
+
+  // --- Generate SKU ---
+  let sku;
+  do {
+    sku = generateSKU(req.body.name);
+  } while (await Product.findOne({ sku }));
+
+  // --- Create product WITHOUT images first ---
+  const product = new Product({
+    name: req.body.name,
+    description: req.body.description,
+    category: req.body.category,
+    sku,
+    variants: variantsData,
+    seller: sellerId,
+    isApproved,
+    shippingCharge: req.body.shippingCharge || 0,
+    deliveryTime: req.body.deliveryTime || "3-5 business days",
+    tags: tagsData,
+  });
+
+  const savedProduct = await product.save();
+  const productId = savedProduct._id.toString();
+
+  // --- Upload PRODUCT images ---
+  const uploadedProductImages = [];
+  if (req.files?.productImages) {
+    for (let file of req.files.productImages) {
+      const url = await uploadToCloudinary(
+        file.buffer,
+        `BlossomHoney/products/${productId}/images`,
+        file.originalname.split(".")[0] + "-" + Date.now()
+      );
+      uploadedProductImages.push(url);
+    }
+  }
+
+  // --- Upload VARIANT images (flattened) ---
+  if (req.files?.variantImages && req.files.variantImages.length > 0) {
+    let imageIndex = 0; // tracks position in flat array
+
+    for (let i = 0; i < variantsData.length; i++) {
+      const uploadedImages = [];
+
+      // Get number of images this variant has from frontend (optional)
+      const numImages = (product.variants[i].images?.length || 0);
+
+      // Only upload if images exist
+      if (numImages > 0) {
+        for (let j = 0; j < numImages; j++) {
+          const file = req.files.variantImages[imageIndex];
+          if (!file) continue;
+
+          const url = await uploadToCloudinary(
+            file.buffer,
+            `BlossomHoney/products/${productId}/variants/${i}`,
+            file.originalname.split(".")[0] + "-" + Date.now()
+          );
+          uploadedImages.push(url);
+          imageIndex++;
+        }
+      }
+
+      // Assign uploaded images (or empty array if none)
+      variantsData[i].images = uploadedImages;
+    }
+  } else {
+    // No variant images uploaded, set empty array for each variant
+    variantsData.forEach((v) => {
+      v.images = [];
+    });
+  }
+
+  // --- Save image URLs back to product ---
+  savedProduct.images = uploadedProductImages;
+  savedProduct.variants = variantsData;
+
+  await savedProduct.save();
+
+  res.status(201).json({
+    message: "Product created successfully",
+    product: savedProduct,
+  });
+});
+
+
+
 const getApprovedProducts = asyncHandler(async (req, res) => {
   const pageSize = 12;
   const page = Number(req.query.pageNumber) || 1;
@@ -123,70 +254,6 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
-function generateSKU(productName) {
-  const prefix = productName.slice(0, 3).toUpperCase();
-  const random = Math.floor(1000 + Math.random() * 9000);
-  return `${prefix}-${random}`;
-}
-
-// @desc    Create a new product
-// @route   POST /api/products/admin
-// @access  Private/Seller
-const createProduct = asyncHandler(async (req, res) => {
-  console.log("Request body:", req.body);
-
-  // Parse variants
-  let variantsData = [];
-  if (Array.isArray(req.body.variants)) {
-    variantsData = req.body.variants;
-  } else if (typeof req.body.variants === "string") {
-    try {
-      variantsData = JSON.parse(req.body.variants);
-    } catch (error) {
-      res.status(400);
-      throw new Error("Invalid variants data format (must be JSON array)");
-    }
-  }
-
-  // Extract images and videos
-  const productImages = extractMediaUrls(req.files?.images || []);
-  const productVideos = extractMediaUrls(req.files?.videos || []);
-
-  const sellerId = req.user?._id || req.body.seller;
-  const isApproved = req.user.role === "admin";
-
-  // Generate unique SKU
-  let skuu;
-  do {
-    skuu = generateSKU(req.body.name);
-  } while (await Product.findOne({ sku: skuu }));
-
-  const product = new Product({
-    name: req.body.name,
-    description: req.body.description,
-    category: req.body.category,
-    sku: skuu,
-    variants: variantsData,
-    images: productImages,
-    videos: productVideos,
-    seller: sellerId,
-    isApproved,
-    shippingCharge: req.body.shippingCharge || 0,
-    deliveryTime: req.body.deliveryTime || "3-5 business days",
-    tags: req.body.tags
-      ? typeof req.body.tags === "string"
-        ? JSON.parse(req.body.tags)
-        : req.body.tags
-      : [],
-  });
-
-  const createdProduct = await product.save();
-  res.status(201).json(createdProduct);
-});
-
-// @desc    Update an existing product
-// @route   PUT /api/products/admin/:id
-// @access  Private/Seller
 const updateProduct = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
@@ -250,9 +317,6 @@ const updateProduct = asyncHandler(async (req, res) => {
   res.json(updatedProduct);
 });
 
-// @desc    Delete a product
-// @route   DELETE /api/products/admin/:id
-// @access  Private/Seller/Admin
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
@@ -273,9 +337,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
   res.json({ message: "Product removed successfully" });
 });
 
-// @desc    Admin: Approve a product
-// @route   PUT /api/products/admin/approve/:id
-// @access  Private/Admin
 const approveProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) {
