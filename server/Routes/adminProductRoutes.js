@@ -13,8 +13,8 @@ const {
 // Assuming these middleware functions exist
 const { protect, seller, admin } = require("../Middleware/authMiddleware");
 
-const { createUploader } = require("../Middleware/uploadMiddleware");
-const productUploader = createUploader("products"); // Use the 'products' subfolder
+
+//const productUploader = createUploader("products"); // Use the 'products' subfolder
 const { upload } = require("../Middleware/newmiddleware");
 
 // @desc    Get all products (including unapproved) - For Admin/Seller Dashboard
@@ -44,7 +44,10 @@ router.put(
   "/:id",
   protect,
   seller,
-  productUploader.array("productImages", 10), // Use the specific uploader instance
+  upload.fields([
+    { name: "productImages", maxCount: 10 },
+    { name: "variantImages", maxCount: 20 },
+  ]), // Use the specific uploader instance
   updateProduct
 );
 

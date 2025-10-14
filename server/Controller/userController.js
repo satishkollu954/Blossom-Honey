@@ -161,6 +161,36 @@ const deleteAddress = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ Fetch all users (with addresses)
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find()
+    .select("-password -resetPasswordToken -resetPasswordExpire") // exclude sensitive fields
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: users.length,
+    users,
+  });
+});
+
+// ✅ Fetch user by ID (with addresses)
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select(
+    "-password -resetPasswordToken -resetPasswordExpire"
+  );
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
+
 module.exports = {
   getProfile,
   getAddresses,
@@ -168,4 +198,6 @@ module.exports = {
   updateAddress,
   deleteAddress,
   updateProfile,
+  getAllUsers,
+  getUserById,
 };

@@ -7,26 +7,29 @@ const {
   getProductById,
   createProductReview,
 } = require("../Controller/productController"); // Assuming your controller functions are here
-
+const { upload } = require("../Middleware/newmiddleware");
 // Assuming these middleware functions exist
 const { protect } = require("../Middleware/authMiddleware");
 
 // --- Updated: Import the factory function and create a review-specific uploader ---
-const {createUploader} = require("../Middleware/uploadMiddleware");
-const reviewUploader = createUploader("reviews"); // Use the 'reviews' subfolder for organization
+const { createUploader } = require("../Middleware/uploadMiddleware");
+//const reviewUploader = createUploader("reviews"); // Use the 'reviews' subfolder for organization
 
 // @desc    Fetch all APPROVED products (Public catalog view)
 // @route   GET /api/products
 // @access  Public
 // Public routes
 router.get("/", getApprovedProducts);
-router.get("/:id", getProductById);
+router.get("/products/:id", getProductById);
 
 // Protected routes
 router.post(
   "/:id/reviews",
   protect,
-  createUploader("reviews").array("reviewImages", 5), // review images
+  upload.fields([
+    { name: "productImages", maxCount: 10 },
+    { name: "variantImages", maxCount: 20 },
+  ]), // review images
   createProductReview
 );
 
