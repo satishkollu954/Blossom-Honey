@@ -41,11 +41,13 @@ export default function ViewProducts() {
 
     // Fetch products
     useEffect(() => {
+        console.log("----");
         fetch(`http://localhost:3005/api/products/admin/`, {
             headers: { Authorization: `Bearer ${cookies.token}` },
         })
             .then((res) => res.json())
             .then((data) => {
+                console.log(data);
                 setProducts(data);
                 setLoading(false);
             })
@@ -330,7 +332,7 @@ export default function ViewProducts() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {product.variants.map((v) => (
+                                        {product.variants?.map((v) => (
                                             <tr key={v._id} className="border-t">
                                                 {editVariantId === v._id ? (
                                                     <>
