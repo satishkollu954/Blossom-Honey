@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Edit, Trash2, Search, ImagePlus, Loader2, Check, X } from "lucide-react";
+import { Edit, Trash2, Search, Loader2, Check, X } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import { useCookies } from "react-cookie";
 
@@ -111,7 +111,7 @@ export default function ViewProducts() {
         setActionLoading(variantId);
         try {
             const res = await fetch(
-                `http://localhost:3005/api/products/admin/${productId}/variants/${variantId}`,
+                `http://localhost:3005/api/products/admin/${productId}/variant/${variantId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -121,7 +121,8 @@ export default function ViewProducts() {
                     body: JSON.stringify(editedVariant),
                 }
             );
-            if (res.ok) {
+            console.log(res.status);
+            if (res.status == 200) {
                 setProducts((prev) =>
                     prev.map((p) =>
                         p._id === productId

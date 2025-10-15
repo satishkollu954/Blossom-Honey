@@ -122,17 +122,11 @@ const UploadProduct: React.FC = () => {
         });
     };
 
-    // ===========================
-    // Handle Product Change
-    // ===========================
     const handleProductChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setProduct((prev) => ({ ...prev, [name]: value }));
     };
 
-    // ===========================
-    // Submit form
-    // ===========================
     const handleSubmit = async () => {
         const { name, description, category, images, variants } = product;
 
@@ -149,9 +143,7 @@ const UploadProduct: React.FC = () => {
             return;
         }
 
-        // Example duplicate product check (could be replaced with API)
-        // Here, if the name is already same as existing one in local variants, we’ll show warning.
-        // In real scenario, you’d check from backend.
+
         if (name.toLowerCase() === "blossom honey") {
             toast.error("This product already exists!");
             return;
@@ -209,9 +201,7 @@ const UploadProduct: React.FC = () => {
         }
     };
 
-    // ===========================
-    // Render
-    // ===========================
+
     return (
         <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-6 border border-gray-100">
             <ToastContainer position="top-right" autoClose={1500} hideProgressBar />
@@ -275,6 +265,10 @@ const UploadProduct: React.FC = () => {
                         <option value="500g">500g</option>
                         <option value="750g">750g</option>
                         <option value="1kg">1kg</option>
+                        <option value="2kg">2kg</option>
+                        <option value="250ml">250ml</option>
+                        <option value="500ml">500ml</option>
+                        <option value="1L">1L</option>
                     </select>
                     <input
                         name="type"
