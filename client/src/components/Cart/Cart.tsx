@@ -1,68 +1,145 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Trash2 } from "lucide-react";
+import axios from "axios";
+import { useCookies } from "react-cookie";
+
+interface Product {
+    _id: string;
+    name: string;
+    images: string[];
+}
+
+interface CartItem {
+    _id: string;
+    variantId: string;
+    product: Product;
+    variant: {
+        _id: string;
+        weight: string;
+    };
+    price: number;
+    quantity: number;
+    stock: number;
+}
+
+
+interface CartResponse {
+    items: CartItem[];
+    totalAmount: number;
+}
 
 const Cart: React.FC = () => {
-    const [cartItems, setCartItems] = useState([
-        {
-            id: "1",
-            name: "Organic Honey Jar",
-            price: 15.99,
-            quantity: 2,
-            image: "https://via.placeholder.com/120",
-        },
-        {
-            id: "2",
-            name: "Raw Almond Pack",
-            price: 9.49,
-            quantity: 1,
-            image: "https://via.placeholder.com/120",
-        },
-        {
-            id: "3",
-            name: "Green Tea Pouch",
-            price: 6.25,
-            quantity: 3,
-            image: "https://via.placeholder.com/120",
-        },
-    ]);
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [cookies] = useCookies(["token"]);
+
+    const token = cookies.token;
+
+    useEffect(() => {
+        const fetchCart = async () => {
+            try {
+                const res = await axios.get<CartResponse>("http://localhost:3005/api/cart", {
+                    headers: { Authorization: token ? `Bearer ${token}` : "" },
+                });
+                setCartItems(res.data.items || []);
+            } catch (error) {
+                console.error("Failed to load cart:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCart();
+    }, [token]);
 
     // Increment quantity
-    const handleIncrement = (id: string) => {
-        setCartItems((prev) =>
-            prev.map((item) =>
-                item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-            )
+    const handleIncrement = async (productId: string, variantId: string) => {
+        const item = cartItems.find(
+            (i) => i.product._id === productId && i.variantId === variantId
         );
+        if (!item) return;
+
+        const newQuantity = item.quantity + 1;
+
+        try {
+            await axios.put(
+                "http://localhost:3005/api/cart/update",
+                { productId, variantId, quantity: newQuantity },
+                { headers: { Authorization: token ? `Bearer ${token}` : "" } }
+            );
+
+            // Update local state
+            setCartItems((prev) =>
+                prev.map((i) =>
+                    i.product._id === productId && i.variantId === variantId
+                        ? { ...i, quantity: newQuantity }
+                        : i
+                )
+            );
+        } catch (error) {
+            console.error("Failed to increment quantity:", error);
+        }
     };
 
     // Decrement quantity
-    const handleDecrement = (id: string) => {
-        setCartItems((prev) =>
-            prev.map((item) =>
-                item.id === id && item.quantity > 1
-                    ? { ...item, quantity: item.quantity - 1 }
-                    : item
-            )
+    const handleDecrement = async (productId: string, variantId: string) => {
+        const item = cartItems.find(
+            (i) => i.product._id === productId && i.variantId === variantId
         );
+        if (!item || item.quantity <= 1) return;
+
+        const newQuantity = item.quantity - 1;
+
+        try {
+            await axios.put(
+                "http://localhost:3005/api/cart/update",
+                { productId, variantId, quantity: newQuantity },
+                { headers: { Authorization: token ? `Bearer ${token}` : "" } }
+            );
+
+            // Update local state
+            setCartItems((prev) =>
+                prev.map((i) =>
+                    i.product._id === productId && i.variantId === variantId
+                        ? { ...i, quantity: newQuantity }
+                        : i
+                )
+            );
+        } catch (error) {
+            console.error("Failed to decrement quantity:", error);
+        }
     };
 
+
     // Remove item
-    const handleRemove = (id: string) => {
-        setCartItems((prev) => prev.filter((item) => item.id !== id));
+    const handleRemove = async (productId: string, variantId: string) => {
+        try {
+            await axios.delete(`http://localhost:3005/api/cart/remove/${productId}/${variantId}`, {
+                headers: { Authorization: token ? `Bearer ${token}` : "" },
+                data: { productId, variantId },
+            });
+
+            setCartItems((prev) =>
+                prev.filter(
+                    (item) => !(item.product._id === productId && item.variantId === variantId)
+                )
+            );
+        } catch (error) {
+            console.error("Failed to remove item:", error);
+        }
     };
 
     // Calculate total
     const totalPrice = useMemo(() => {
-        return cartItems.reduce(
-            (sum, item) => sum + item.price * item.quantity,
-            0
-        );
+        return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     }, [cartItems]);
 
-    // Checkout
-    const handleCheckout = () => {
-        alert(`Proceeding to checkout. Total: $${totalPrice.toFixed(2)}`);
-    };
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-yellow-600 text-lg">
+                Loading your cart...
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 p-6">
@@ -77,37 +154,45 @@ const Cart: React.FC = () => {
                     <div className="flex flex-col gap-5">
                         {cartItems.map((item) => (
                             <div
-                                key={item.id}
+                                key={`${item.product._id}-${item.variantId}`}
                                 className="flex gap-4 items-center p-4 border rounded-xl hover:shadow-md transition"
                             >
                                 <img
-                                    src={item.image}
-                                    alt={item.name}
+                                    src={item.product.images[0] || "https://via.placeholder.com/100"}
+                                    alt={item.product.name}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
 
                                 <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                                    <h3 className="font-semibold text-gray-800">{item.product.name}</h3>
 
                                     <div className="text-sm text-gray-500 flex justify-between">
                                         <span>Price:</span>
+                                        <span className="font-medium text-gray-700 ">
+                                            ₹{item.price.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-gray-500 flex justify-between">
+                                        <span>Weight:</span>
                                         <span className="font-medium text-gray-700">
-                                            &#8377;{item.price.toFixed(2)}
+                                            {item.variant?.weight || "-"}
                                         </span>
                                     </div>
 
                                     <div className="mt-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => handleDecrement(item.id)}
-                                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                onClick={() => handleDecrement(item.product._id, item.variantId)}
+                                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                                                disabled={item.quantity <= 1} // Disable decrement if quantity is 1
                                             >
                                                 -
                                             </button>
                                             <span className="font-medium">{item.quantity}</span>
                                             <button
-                                                onClick={() => handleIncrement(item.id)}
-                                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                onClick={() => handleIncrement(item.product._id, item.variantId)}
+                                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                                                disabled={item.quantity >= (item.stock || Infinity)} // Disable increment if quantity reaches stock
                                             >
                                                 +
                                             </button>
@@ -116,14 +201,14 @@ const Cart: React.FC = () => {
                                         <div className="text-right">
                                             <p className="text-sm text-gray-600">Item Total:</p>
                                             <p className="font-semibold text-gray-800">
-                                                &#8377;{(item.price * item.quantity).toFixed(2)}
+                                                ₹{(item.price * item.quantity).toFixed(2)}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <button
-                                    onClick={() => handleRemove(item.id)}
+                                    onClick={() => handleRemove(item.product._id, item.variantId)}
                                     className="text-red-500 hover:text-red-700 transition"
                                     title="Remove from cart"
                                 >
@@ -133,17 +218,15 @@ const Cart: React.FC = () => {
                         ))}
 
                         <div className="mt-6 border-t pt-4 flex justify-between items-center">
-                            <span className="text-lg font-semibold text-gray-700">
-                                Total Amount
-                            </span>
+                            <span className="text-lg font-semibold text-gray-700">Total Amount</span>
                             <span className="text-xl font-bold text-gray-900">
-                                &#8377;{totalPrice.toFixed(2)}
+                                ₹{totalPrice.toFixed(2)}
                             </span>
                         </div>
 
                         <button
-                            onClick={handleCheckout}
-                            className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition"
+                            onClick={() => alert(`Proceeding to checkout. Total: ₹${totalPrice.toFixed(2)}`)}
+                            className="w-full mt-4 bg-yellow-500 text-white py-3 rounded-xl font-medium hover:bg-yellow-600 transition"
                         >
                             Proceed to Checkout
                         </button>
