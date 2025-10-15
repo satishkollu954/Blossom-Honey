@@ -40,6 +40,18 @@ export default function ViewProducts() {
     const [editedVariant, setEditedVariant] = useState<Partial<Variant>>({});
     const [cookies] = useCookies(["token"]);
 
+    const [confirmModal, setConfirmModal] = useState<{
+        type: "product" | "variant" | null;
+        productId: string | null;
+        variantId?: string | null;
+        message: string;
+    }>({
+        type: null,
+        productId: null,
+        variantId: null,
+        message: "",
+    });
+
     function getProducts() {
         fetch(`http://localhost:3005/api/products/admin/`, {
             headers: { Authorization: `Bearer ${cookies.token}` },
@@ -118,7 +130,14 @@ export default function ViewProducts() {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${cookies.token}`,
                     },
-                    body: JSON.stringify(editedVariant),
+                    body: JSON.stringify({
+                        variants: [
+                            {
+                                variantId,
+                                ...editedVariant
+                            }
+                        ]
+                    })
                 }
             );
             console.log(res.status);
@@ -147,53 +166,87 @@ export default function ViewProducts() {
 
     // Delete product
     const handleDeleteProduct = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this product?")) return;
         setActionLoading(id);
-
         try {
             const res = await fetch(`http://localhost:3005/api/products/admin/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
-            if (res.ok) {
-                setProducts(products.filter((p) => p._id !== id));
+            if (res.status == 200) {
+                setProducts((prev) => prev.filter((p) => p._id !== id));
                 toast.success("Product deleted successfully");
             } else toast.error("Failed to delete product");
         } catch {
             toast.error("Failed to delete product");
         } finally {
             setActionLoading(null);
+            setConfirmModal({ type: null, productId: null, message: "" });
         }
     };
 
+
     // Delete variant
     const handleDeleteVariant = async (productId: string, variantId: string) => {
-        if (!window.confirm("Delete this variant?")) return;
         setActionLoading(variantId);
-
         try {
             const res = await fetch(
-                `http://localhost:3005/api/products/admin/${productId}/variants/${variantId}`,
+                `http://localhost:3005/api/products/admin/${productId}/variant/${variantId}`,
                 {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${cookies.token}` },
                 }
             );
-            if (res.ok) {
+
+            if (res.status == 200) {
                 setProducts((prev) =>
-                    prev.map((p) =>
-                        p._id === productId
-                            ? { ...p, variants: p.variants.filter((v) => v._id !== variantId) }
-                            : p
-                    )
+                    prev.flatMap((p) => {
+                        if (p._id === productId) {
+                            const updatedVariants = p.variants.filter((v) => v._id !== variantId);
+                            if (updatedVariants.length === 0) {
+                                handleDeleteProduct(productId);
+                                return [];
+                            }
+                            return [{ ...p, variants: updatedVariants }];
+                        }
+                        return [p];
+                    })
                 );
                 toast.success("Variant deleted");
-            } else toast.error("Failed to delete variant");
-        } catch {
+            } else {
+                toast.error("Failed to delete variant");
+            }
+        } catch (err) {
+            console.error(err);
             toast.error("Failed to delete variant");
         } finally {
             setActionLoading(null);
+            setConfirmModal({ type: null, productId: null, message: "" });
         }
+    };
+
+
+
+    const confirmDelete = (
+        type: "product" | "variant",
+        productId: string,
+        variantId?: string
+    ) => {
+        const message =
+            type === "product"
+                ? "Are you sure you want to delete this product? This action cannot be undone."
+                : "Delete this variant? If this is the last variant, the product will also be deleted.";
+        setConfirmModal({ type, productId, variantId, message });
+    };
+
+    const handleConfirm = () => {
+        if (confirmModal.type === "product" && confirmModal.productId)
+            handleDeleteProduct(confirmModal.productId);
+        if (
+            confirmModal.type === "variant" &&
+            confirmModal.productId &&
+            confirmModal.variantId
+        )
+            handleDeleteVariant(confirmModal.productId, confirmModal.variantId);
     };
 
 
@@ -338,7 +391,7 @@ export default function ViewProducts() {
                                         </button>
                                         <button
                                             disabled={actionLoading === product._id}
-                                            onClick={() => handleDeleteProduct(product._id)}
+                                            onClick={() => confirmDelete("product", product._id)}
                                             className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded disabled:opacity-60"
                                         >
                                             {actionLoading === product._id ? (
@@ -474,10 +527,7 @@ export default function ViewProducts() {
                                                             </button>
                                                             <button
                                                                 onClick={() =>
-                                                                    handleDeleteVariant(
-                                                                        product._id,
-                                                                        v._id
-                                                                    )
+                                                                    confirmDelete("variant", product._id, v._id)
                                                                 }
                                                                 className="text-red-500 hover:text-red-700"
                                                             >
@@ -495,6 +545,33 @@ export default function ViewProducts() {
                     ))
                 )}
             </div>
+            {/*  Tailwind Confirmation Modal */}
+            {confirmModal.type && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+                    <div className="bg-white rounded-lg shadow-lg w-96 p-6 text-center">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                            Confirm Deletion
+                        </h3>
+                        <p className="text-gray-600 mb-6">{confirmModal.message}</p>
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={() =>
+                                    setConfirmModal({ type: null, productId: null, message: "" })
+                                }
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirm}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
