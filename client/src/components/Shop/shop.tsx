@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useCookies } from "react-cookie";
+import { useNavigate } from "react-router-dom";
 
 // 1. Product Interface (matches your backend data)
 interface Product {
@@ -25,6 +26,7 @@ interface Product {
 
 // 2. Individual Card Component
 const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
+    const navigate = useNavigate();
     const firstVariant = product.variants?.[0];
     const image =
         product.images?.[0] ||
@@ -32,7 +34,10 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
         "https://via.placeholder.com/300x300?text=No+Image";
 
     return (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col items-center p-4 border border-gray-100 hover:shadow-md transition-shadow duration-300">
+        <div
+            onClick={() => navigate(`http://localhost:3005/api/products/products/${product._id}`)}
+            className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col items-center p-4 border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
+        >
             <div className="w-full h-64 flex items-center justify-center mb-4">
                 <img
                     src={image}
@@ -47,7 +52,6 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
                 <p className="text-gray-600 text-sm mb-3 min-h-[40px]">
                     {product.description || "No description available."}
                 </p>
-
                 <p className="font-bold text-2xl text-yellow-600 mb-3">
                     ₹{firstVariant?.finalPrice ?? 0}
                 </p>
@@ -56,13 +60,13 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
                         ₹{firstVariant.price}
                     </p>
                 )}
-
                 <button className="bg-yellow-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-yellow-600 transition-colors w-full">
-                    Add to Cart
+                    View Details
                 </button>
             </div>
         </div>
     );
+
 };
 
 // 3. Main Shop Component
@@ -76,10 +80,10 @@ const Shop: React.FC = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const res = await axios.get("http://localhost:3005/api/products/admin/", {
+                const res = await axios.get("http://localhost:3005/api/products/", {
                     headers: { Authorization: `Bearer ${cookies.token}` },
                 }); // adjust base URL if needed
-                setProducts(res.data);
+                setProducts(res.data.products);
             } catch (err) {
                 console.error("Error fetching products:", err);
                 setError("Failed to load products. Please try again later.");
@@ -93,7 +97,7 @@ const Shop: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="container mx-auto p-8 text-center text-gray-500">
+            <div className="container mx-auto p-8 text-center text-yellow-500">
                 Loading products...
             </div>
         );
