@@ -152,17 +152,16 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getApprovedProducts = asyncHandler(async (req, res) => {
-  const pageSize = 12;
-  const page = Number(req.query.pageNumber) || 1;
+  // const pageSize = 12;
+  // const page = Number(req.query.pageNumber) || 1;
 
   const query = { isApproved: true };
 
-  const count = await Product.countDocuments(query);
-  const products = await Product.find(query)
-    .limit(pageSize)
-    .skip(pageSize * (page - 1));
+  // const count = await Product.countDocuments(query);
+  const products = await Product.find(query);
 
-  res.json({ products, page, pages: Math.ceil(count / pageSize), count });
+  //res.json({ products, page, pages: Math.ceil(count / pageSize), count });
+  res.json({ products });
 });
 
 const getProductById = asyncHandler(async (req, res) => {
@@ -174,10 +173,8 @@ const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findOne({
     _id: req.params.id,
     isApproved: true,
-  })
-    .populate("reviews.user", "name")
-    .lean();
-
+  });
+  console.log("Fetched  single product :", product);
   if (product) {
     res.json(product);
   } else {

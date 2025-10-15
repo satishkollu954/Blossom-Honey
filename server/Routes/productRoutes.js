@@ -20,7 +20,7 @@ const { createUploader } = require("../Middleware/uploadMiddleware");
 // @access  Public
 // Public routes
 router.get("/", getApprovedProducts);
-router.get("/products/:id", getProductById);
+router.get("/product/:id", getProductById);
 
 // Protected routes
 router.post(
