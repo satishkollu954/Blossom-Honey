@@ -7,11 +7,10 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { createShipmentWithShiprocket } = require("../utils/shiprocket");
 
-
 // --- Add to Cart ---
 const addToCart = asyncHandler(async (req, res) => {
   const { productId, variantId, quantity } = req.body;
- const userId = req.user._id;
+  const userId = req.user._id;
 
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
@@ -38,6 +37,7 @@ const addToCart = asyncHandler(async (req, res) => {
       variantId,
       quantity,
       price: variant.finalPrice,
+      weight: variant.weight,
       subtotal: variant.finalPrice * quantity,
     });
   }
@@ -48,54 +48,12 @@ const addToCart = asyncHandler(async (req, res) => {
 
 // --- Get Cart ---
 const getCart = asyncHandler(async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user._id })
-    .populate("items.product")
-    .lean(); // convert to plain JS object so we can modify it easily
-
-  if (!cart) {
-    return res.json({ items: [] });
-  }
-
-  // Add variant details manually
-  const updatedItems = cart.items.map((item) => {
-    const variant = item.product?.variants?.id(item.variantId);
-    return {
-      ...item,
-      product: {
-        _id: item.product?._id,
-        name: item.product?.name,
-        description: item.product?.description,
-        category: item.product?.category,
-        images: item.product?.images,
-      },
-      variant: variant
-        ? {
-            _id: variant._id,
-            type: variant.type,
-            packaging: variant.packaging,
-            weight: variant.weight,
-            price: variant.price,
-            discount: variant.discount,
-            finalPrice: variant.finalPrice,
-            stock: variant.stock,
-            images: variant.images,
-          }
-        : null,
-    };
-  });
-
-  res.json({
-    _id: cart._id,
-    user: cart.user,
-    items: updatedItems,
-    totalAmount: cart.totalAmount,
-    discountAmount: cart.discountAmount,
-    coupon: cart.coupon,
-    createdAt: cart.createdAt,
-    updatedAt: cart.updatedAt,
-  });
+  const cart = await Cart.findOne({ user: req.user._id }).populate(
+    "items.product",
+    "items.variantId"
+  );
+  res.json(cart || { items: [] });
 });
-
 
 // --- Update Cart Item ---
 const updateCartItem = asyncHandler(async (req, res) => {
@@ -206,7 +164,6 @@ const syncGuestCart = asyncHandler(async (req, res) => {
 
 // --- Checkout Cart → Create Order ---
 
-
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -280,12 +237,12 @@ const checkout = asyncHandler(async (req, res) => {
     order.status = "Placed";
     await order.save();
     order.delivery = {
-  partner: "Shiprocket",
-  pickupAddress: "Seller Warehouse Address",
-  deliveryAddress: order.shippingAddress,
-  deliveryStatus: "Pending",
-};
-await createShipmentWithShiprocket(order);
+      partner: "Shiprocket",
+      pickupAddress: "Seller Warehouse Address",
+      deliveryAddress: order.shippingAddress,
+      deliveryStatus: "Pending",
+    };
+    await createShipmentWithShiprocket(order);
     return res.json({ message: "COD Order placed successfully", order });
   }
 
@@ -309,7 +266,12 @@ await createShipmentWithShiprocket(order);
 
 // --- Verify Online Payment ---
 const verifyOnlinePayment = asyncHandler(async (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    orderId,
+  } = req.body;
 
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
@@ -337,11 +299,9 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   order.paymentStatus = "Paid";
   order.status = "Placed"; // can keep processing/shipped flow
   await order.save();
-await createShipmentWithShiprocket(order);
+  await createShipmentWithShiprocket(order);
   res.json({ message: "Payment successful, order placed", order });
 });
-
-
 
 module.exports = {
   addToCart,
@@ -350,5 +310,6 @@ module.exports = {
   removeCartItem,
   applyCoupon,
   syncGuestCart,
-  checkout, verifyOnlinePayment
+  checkout,
+  verifyOnlinePayment,
 };
