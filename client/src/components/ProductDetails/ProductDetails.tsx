@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { useCookies } from "react-cookie";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Variant {
@@ -59,6 +59,9 @@ const ProductDetails: React.FC = () => {
     const prevImage = () => {
         setImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
     };
+
+
+
 
     return (
         <div className="container mx-auto px-6 py-10 flex flex-col lg:flex-row gap-10">
