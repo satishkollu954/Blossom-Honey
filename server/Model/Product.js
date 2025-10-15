@@ -1,3 +1,4 @@
+// server/Model/Product.js
 const mongoose = require("mongoose");
 
 // Review Schema

@@ -12,6 +12,9 @@ const productRoutes = require("./Routes/productRoutes");
 const adminProductRoutes = require("./Routes/adminProductRoutes");
 const userRoutes = require("./Routes/userRoutes");
 const app = express();
+const cartRoutes = require("./Routes/cartRoutes");
+const paymentRoutes = require("./Routes/paymentRoutes");
+const orderRoutes = require("./Routes/orderRoutes");
 
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((origin) => origin.trim())
@@ -40,6 +43,9 @@ app.use("/api/products/admin", adminProductRoutes);
 //app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/orders", orderRoutes);
 
 // Optional: serve local uploads if needed
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
