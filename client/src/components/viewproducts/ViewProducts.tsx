@@ -186,6 +186,7 @@ export default function ViewProducts() {
 
 
     // Delete variant
+
     const handleDeleteVariant = async (productId: string, variantId: string) => {
         setActionLoading(variantId);
         try {
@@ -208,6 +209,7 @@ export default function ViewProducts() {
                     })
                 );
                 toast.success("Variant deleted");
+                getProducts();
             } else {
                 toast.error("Failed to delete variant");
             }
@@ -219,6 +221,7 @@ export default function ViewProducts() {
             setConfirmModal({ type: null, productId: null, message: "" });
         }
     };
+
 
 
 
