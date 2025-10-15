@@ -19,6 +19,7 @@ import UploadProduct from "./components/uploadproducts/UploadProducts";
 import ViewProducts from "./components/viewproducts/ViewProducts";
 import HoneyStory from "./components/honeystory/HoneyStory";
 import UsersList from "./components/AllUsers/AllUsers";
+import ProductDetails from "./components/ProductDetails/ProductDetails";
 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/register" element={<UserRegister />} />
           <Route path="/forget" element={<ForgetPassword />} />
           <Route path="/ourstory" element={<HoneyStory />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
 
           {/* Protected Admin Route */}
 

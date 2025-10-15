@@ -35,7 +35,7 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
 
     return (
         <div
-            onClick={() => navigate(`http://localhost:3005/api/products/products/${product._id}`)}
+            onClick={() => navigate(`/product/${product._id}`)}
             className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col items-center p-4 border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
         >
             <div className="w-full h-64 flex items-center justify-center mb-4">
