@@ -165,7 +165,6 @@ const getApprovedProducts = asyncHandler(async (req, res) => {
   res.json({ products, page, pages: Math.ceil(count / pageSize), count });
 });
 
-
 const getProductById = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
@@ -306,7 +305,7 @@ const updateVariants = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid variants data format");
   }
-
+  console.log("==>>  ", variantsData);
   if (!Array.isArray(variantsData)) {
     res.status(400);
     throw new Error("Variants should be an array");
@@ -376,16 +375,30 @@ const deleteVariant = asyncHandler(async (req, res) => {
   const variantIndex = product.variants.findIndex(
     (v) => v._id.toString() === variantId
   );
+
   if (variantIndex === -1) {
     res.status(404);
     throw new Error("Variant not found");
   }
 
+  // Remove the variant
   product.variants.splice(variantIndex, 1);
+
+  // ✅ If no variants remain, delete the product entirely
+  if (product.variants.length === 0) {
+    await Product.findByIdAndDelete(productId);
+    return res.status(200).json({
+      message: "Last variant deleted — product also removed",
+      productDeleted: true,
+    });
+  }
+
+  // Otherwise, just save the product
   await product.save();
 
   res.status(200).json({
     message: "Variant deleted successfully",
+    productDeleted: false,
   });
 });
 
