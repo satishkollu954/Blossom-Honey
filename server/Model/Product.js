@@ -36,9 +36,29 @@ const variantSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
+    enum: [
+      // 🐝 Honey Types
+      "Raw", // Unprocessed, straight from the hive
+      "Organic", // Certified organic
+      "Wild", // Forest or wild-collected honey
+      "Natural", // No additives or preservatives
+      "Flavored", // Infused with flavors like lemon or ginger
+      "Pure", // 100% natural, no blending
+
+      // 🌰 Dry Fruits Types
+      "Organic",
+      "Roasted",
+      "Salted",
+      "Unsalted",
+      "Plain",
+      "Flavored",
+      "Premium Grade",
+      "Regular Grade",
+    ],
     description:
-      "The specific flavor, variety, or grade of the product (e.g., California Almonds, Sidr Honey).",
+      "The processing or quality type of the product (e.g., Raw, Organic, Wild, Roasted, Salted).",
   },
+
   // Packaging type is important for food items
   packaging: {
     type: String,

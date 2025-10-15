@@ -424,16 +424,28 @@ export default function ViewProducts() {
                                                 {editVariantId === v._id ? (
                                                     <>
                                                         <td className="p-2">
-                                                            <input
+                                                            <select
                                                                 className="border p-1 rounded w-full"
-                                                                defaultValue={v.weight}
+                                                                value={editedVariant.weight} // bind to editedVariant
                                                                 onChange={(e) =>
                                                                     setEditedVariant({
                                                                         ...editedVariant,
                                                                         weight: e.target.value,
                                                                     })
                                                                 }
-                                                            />
+                                                            >
+
+                                                                <option value="100g">100g</option>
+                                                                <option value="250g">250g</option>
+                                                                <option value="500g">500g</option>
+                                                                <option value="750g">750g</option>
+                                                                <option value="1kg">1kg</option>
+                                                                <option value="2kg">2kg</option>
+                                                                <option value="250ml">250ml</option>
+                                                                <option value="500ml">500ml</option>
+                                                                <option value="1L">1L</option>
+                                                            </select>
+
                                                         </td>
                                                         <td className="p-2">
                                                             <input

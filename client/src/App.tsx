@@ -10,7 +10,6 @@ import { AdminLogin } from "./components/Login/AdminLogin";
 import { UserRegister } from "./components/Register/Register";
 import { ForgetPassword } from "./components/forgetPassword/forgetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute/ProtectedRoute";
-
 import { Unauthorized } from "./components/unauthorized/unauthorized";
 import { NotFound } from "./components/NotFound/NotFound";
 import { UserProfile } from "./components/UserProfile/UserProfile";
@@ -20,6 +19,11 @@ import ViewProducts from "./components/viewproducts/ViewProducts";
 import HoneyStory from "./components/honeystory/HoneyStory";
 import UsersList from "./components/AllUsers/AllUsers";
 import ProductDetails from "./components/ProductDetails/ProductDetails";
+import { MyOrders } from "./components/MyOrders/MyOrders";
+import Cart from "./components/Cart/Cart";
+
+
+
 
 
 function App() {
@@ -37,6 +41,10 @@ function App() {
           <Route path="/forget" element={<ForgetPassword />} />
           <Route path="/ourstory" element={<HoneyStory />} />
           <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/cart" element={<Cart />} />
+
+
+
 
           {/* Protected Admin Route */}
 
@@ -77,6 +85,15 @@ function App() {
             element={
               <ProtectedRoute allowedRole="user">
                 <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/my-orders"
+            element={
+              <ProtectedRoute allowedRole="user">
+                <MyOrders />
               </ProtectedRoute>
             }
           />

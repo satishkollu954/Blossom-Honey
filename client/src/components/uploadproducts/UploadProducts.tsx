@@ -270,13 +270,31 @@ const UploadProduct: React.FC = () => {
                         <option value="500ml">500ml</option>
                         <option value="1L">1L</option>
                     </select>
-                    <input
+                    <select
                         name="type"
-                        placeholder="Type"
                         value={variant.type}
                         onChange={handleVariantChange}
                         className="border p-3 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
-                    />
+                    >
+                        <option value="">Select Type</option>
+
+                        {/* 🐝 Honey Types */}
+                        <option value="Raw">Raw</option>
+                        <option value="Organic">Organic</option>
+                        <option value="Wild">Wild</option>
+                        <option value="Natural">Natural</option>
+                        <option value="Flavored">Flavored</option>
+                        <option value="Pure">Pure</option>
+
+                        {/* 🌰 Dry Fruit Types */}
+                        <option value="Roasted">Roasted</option>
+                        <option value="Salted">Salted</option>
+                        <option value="Unsalted">Unsalted</option>
+                        <option value="Plain">Plain</option>
+                        <option value="Premium Grade">Premium Grade</option>
+                        <option value="Regular Grade">Regular Grade</option>
+                    </select>
+
                     <select
                         name="packaging"
                         value={variant.packaging}
@@ -286,6 +304,8 @@ const UploadProduct: React.FC = () => {
                         <option value="Jar">Jar</option>
                         <option value="Pouch">Pouch</option>
                         <option value="Bottle">Bottle</option>
+                        <option value="Tin">Tin</option>
+                        <option value="Box">Box</option>
                     </select>
                     <input
                         type="number"
