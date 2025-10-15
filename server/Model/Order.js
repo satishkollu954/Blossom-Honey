@@ -67,6 +67,26 @@ const orderSchema = new mongoose.Schema(
       default: "Placed",
     },
 
+    delivery: {
+      partner: { type: String, default: null },
+      trackingId: { type: String, default: null },
+      awbNumber: { type: String, default: null },
+      pickupAddress: { type: String, default: null },
+      deliveryAddress: { type: String, default: null },
+      deliveryStatus: {
+        type: String,
+        enum: [
+          "Pending",
+          "Pickup Scheduled",
+          "In Transit",
+          "Delivered",
+          "Cancelled",
+        ],
+        default: "Pending",
+      },
+      estimatedDeliveryDate: { type: Date },
+    },
+
     deliveredAt: { type: Date },
 
     returnRequest: {

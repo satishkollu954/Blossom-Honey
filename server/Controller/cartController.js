@@ -5,12 +5,13 @@ const Coupon = require("../Model/Coupon");
 const Order = require("../Model/Order");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const { createShipmentWithShiprocket } = require("../utils/shiprocket");
 
 
 // --- Add to Cart ---
 const addToCart = asyncHandler(async (req, res) => {
   const { productId, variantId, quantity } = req.body;
-  const userId = req.user._id;
+ const userId = req.user._id;
 
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
@@ -47,11 +48,54 @@ const addToCart = asyncHandler(async (req, res) => {
 
 // --- Get Cart ---
 const getCart = asyncHandler(async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user._id }).populate(
-    "items.product"
-  );
-  res.json(cart || { items: [] });
+  const cart = await Cart.findOne({ user: req.user._id })
+    .populate("items.product")
+    .lean(); // convert to plain JS object so we can modify it easily
+
+  if (!cart) {
+    return res.json({ items: [] });
+  }
+
+  // Add variant details manually
+  const updatedItems = cart.items.map((item) => {
+    const variant = item.product?.variants?.id(item.variantId);
+    return {
+      ...item,
+      product: {
+        _id: item.product?._id,
+        name: item.product?.name,
+        description: item.product?.description,
+        category: item.product?.category,
+        images: item.product?.images,
+      },
+      variant: variant
+        ? {
+            _id: variant._id,
+            type: variant.type,
+            packaging: variant.packaging,
+            weight: variant.weight,
+            price: variant.price,
+            discount: variant.discount,
+            finalPrice: variant.finalPrice,
+            stock: variant.stock,
+            images: variant.images,
+          }
+        : null,
+    };
+  });
+
+  res.json({
+    _id: cart._id,
+    user: cart.user,
+    items: updatedItems,
+    totalAmount: cart.totalAmount,
+    discountAmount: cart.discountAmount,
+    coupon: cart.coupon,
+    createdAt: cart.createdAt,
+    updatedAt: cart.updatedAt,
+  });
 });
+
 
 // --- Update Cart Item ---
 const updateCartItem = asyncHandler(async (req, res) => {
@@ -235,6 +279,13 @@ const checkout = asyncHandler(async (req, res) => {
     order.paymentStatus = "Pending";
     order.status = "Placed";
     await order.save();
+    order.delivery = {
+  partner: "Shiprocket",
+  pickupAddress: "Seller Warehouse Address",
+  deliveryAddress: order.shippingAddress,
+  deliveryStatus: "Pending",
+};
+await createShipmentWithShiprocket(order);
     return res.json({ message: "COD Order placed successfully", order });
   }
 
@@ -286,7 +337,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   order.paymentStatus = "Paid";
   order.status = "Placed"; // can keep processing/shipped flow
   await order.save();
-
+await createShipmentWithShiprocket(order);
   res.json({ message: "Payment successful, order placed", order });
 });
 
