@@ -202,10 +202,6 @@ export default function ViewProducts() {
                     prev.flatMap((p) => {
                         if (p._id === productId) {
                             const updatedVariants = p.variants.filter((v) => v._id !== variantId);
-                            if (updatedVariants.length === 0) {
-                                handleDeleteProduct(productId);
-                                return [];
-                            }
                             return [{ ...p, variants: updatedVariants }];
                         }
                         return [p];
