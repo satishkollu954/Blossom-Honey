@@ -17,7 +17,7 @@ router.get("/", protect, getCart);
 router.put("/update", protect, updateCartItem);
 router.delete("/remove/:productId/:variantId", protect, removeCartItem);
 router.post("/apply-coupon", protect, applyCoupon);
-router.post("/sync", protect, syncGuestCart);
+//router.post("/sync", protect, syncGuestCart);
 // Checkout + create Razorpay order / COD
 router.post("/checkout", protect, checkout);
 

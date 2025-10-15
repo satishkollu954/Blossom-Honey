@@ -32,6 +32,11 @@ app.use(
   })
 );
 
+const { startDeliveryTrackingJob } = require("./utils/shiprocketTracker");
+
+// Start the cron job
+startDeliveryTrackingJob();
+
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

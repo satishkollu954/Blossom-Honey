@@ -19,7 +19,7 @@ const cartSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+        
 // Auto update total and discount
 cartSchema.pre("save", function (next) {
   // Remove out-of-stock variants automatically
