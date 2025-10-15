@@ -17,7 +17,17 @@ const variantSchema = new mongoose.Schema({
   // Replaces 'size' with 'weight' or quantity (e.g., 250g, 500g, 1kg for dry fruits, or 250ml, 500ml for honey)
   weight: {
     type: String,
-    enum: ["100g", "250g", "500g", "1kg", "2kg", "250ml", "500ml", "1L"],
+    enum: [
+      "100g",
+      "250g",
+      "500g",
+      "750g",
+      "1kg",
+      "2kg",
+      "250ml",
+      "500ml",
+      "1L",
+    ],
     required: true,
     description: "The quantity or weight of the product variant.",
   },
