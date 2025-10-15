@@ -48,11 +48,41 @@ const addToCart = asyncHandler(async (req, res) => {
 
 // --- Get Cart ---
 const getCart = asyncHandler(async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user._id }).populate(
-    "items.product",
-    "items.variantId"
-  );
-  res.json(cart || { items: [] });
+  const cart = await Cart.findOne({ user: req.user._id })
+    .populate("items.product")
+    .lean();
+
+  if (!cart || !cart.items.length) {
+    return res.json({ items: [], totalAmount: 0 });
+  }
+
+  const itemsArray = cart.items.map((item) => {
+    const variant = item.product?.variants?.find(
+      (v) => v._id.toString() === item.variantId.toString()
+    );
+
+    return {
+      _id: item._id,
+      product: item.product
+        ? {
+            _id: item.product._id,
+            name: item.product.name,
+            images: item.product.images,
+          }
+        : null,
+      variant: variant
+        ? {
+            _id: variant._id,
+            weight: variant.weight,
+          }
+        : null,
+      price: item.price,
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+    };
+  });
+
+  res.json({ items: itemsArray, totalAmount: cart.totalAmount });
 });
 
 // --- Update Cart Item ---
@@ -63,7 +93,8 @@ const updateCartItem = asyncHandler(async (req, res) => {
 
   const item = cart.items.find(
     (i) =>
-      i.product.toString() === productId && i.variantId.toString() === variantId
+      i.product.toString() === productId.toString() &&
+      i.variantId.toString() === variantId.toString()
   );
   if (!item) throw new Error("Item not found in cart");
 
