@@ -379,6 +379,7 @@ const deleteVariant = asyncHandler(async (req, res) => {
 
   // ✅ If no variants remain, delete the product entirely
   if (product.variants.length === 0) {
+    console.log("No variants left, deleting product");
     await Product.findByIdAndDelete(productId);
     return res.status(200).json({
       message: "Last variant deleted — product also removed",
