@@ -11,6 +11,7 @@ const cartItemSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1, min: 1 },
   weight: { type: String, required: true },
   price: { type: Number, required: true },
+  weight: { type: String, required: true },
   subtotal: { type: Number, required: true },
 });
 

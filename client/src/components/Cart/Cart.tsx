@@ -11,7 +11,7 @@ interface Product {
 
 interface CartItem {
     _id: string;
-    variantId: string;
+   // variantId: string;
     product: Product;
     variant: {
         _id: string;
@@ -54,12 +54,12 @@ const Cart: React.FC = () => {
     // Increment quantity
     const handleIncrement = async (productId: string, variantId: string) => {
         const item = cartItems.find(
-            (i) => i.product._id === productId && i.variantId === variantId
+            (i) => i.product._id === productId && i.variant._id === variantId
         );
         if (!item) return;
 
         const newQuantity = item.quantity + 1;
-
+        console.log(variantId, productId, newQuantity);
         try {
             await axios.put(
                 "http://localhost:3005/api/cart/update",
@@ -70,7 +70,7 @@ const Cart: React.FC = () => {
             // Update local state
             setCartItems((prev) =>
                 prev.map((i) =>
-                    i.product._id === productId && i.variantId === variantId
+                    i.product._id === productId && i.variant._id === variantId
                         ? { ...i, quantity: newQuantity }
                         : i
                 )
@@ -83,7 +83,7 @@ const Cart: React.FC = () => {
     // Decrement quantity
     const handleDecrement = async (productId: string, variantId: string) => {
         const item = cartItems.find(
-            (i) => i.product._id === productId && i.variantId === variantId
+            (i) => i.product._id === productId && i.variant._id === variantId
         );
         if (!item || item.quantity <= 1) return;
 
@@ -99,7 +99,7 @@ const Cart: React.FC = () => {
             // Update local state
             setCartItems((prev) =>
                 prev.map((i) =>
-                    i.product._id === productId && i.variantId === variantId
+                    i.product._id === productId && i.variant._id === variantId
                         ? { ...i, quantity: newQuantity }
                         : i
                 )
@@ -120,7 +120,7 @@ const Cart: React.FC = () => {
 
             setCartItems((prev) =>
                 prev.filter(
-                    (item) => !(item.product._id === productId && item.variantId === variantId)
+                    (item) => !(item.product._id === productId && item.variant._id === variantId)
                 )
             );
         } catch (error) {
@@ -154,7 +154,7 @@ const Cart: React.FC = () => {
                     <div className="flex flex-col gap-5">
                         {cartItems.map((item) => (
                             <div
-                                key={`${item.product._id}-${item.variantId}`}
+                                key={`${item.product._id}-${item.variant._id}`}
                                 className="flex gap-4 items-center p-4 border rounded-xl hover:shadow-md transition"
                             >
                                 <img
@@ -182,7 +182,7 @@ const Cart: React.FC = () => {
                                     <div className="mt-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => handleDecrement(item.product._id, item.variantId)}
+                                                onClick={() => handleDecrement(item.product._id, item.variant._id)}
                                                 className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                                                 disabled={item.quantity <= 1} // Disable decrement if quantity is 1
                                             >
@@ -190,7 +190,7 @@ const Cart: React.FC = () => {
                                             </button>
                                             <span className="font-medium">{item.quantity}</span>
                                             <button
-                                                onClick={() => handleIncrement(item.product._id, item.variantId)}
+                                                onClick={() => handleIncrement(item.product._id, item.variant._id)}
                                                 className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                                                 disabled={item.quantity >= (item.stock || Infinity)} // Disable increment if quantity reaches stock
                                             >
@@ -208,7 +208,7 @@ const Cart: React.FC = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => handleRemove(item.product._id, item.variantId)}
+                                    onClick={() => handleRemove(item.product._id, item.variant._id)}
                                     className="text-red-500 hover:text-red-700 transition"
                                     title="Remove from cart"
                                 >
