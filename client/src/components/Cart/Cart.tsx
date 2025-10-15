@@ -158,8 +158,8 @@ const Cart: React.FC = () => {
                                 className="flex gap-4 items-center p-4 border rounded-xl hover:shadow-md transition"
                             >
                                 <img
-                                    src={item.product.images[0] || "https://via.placeholder.com/100"}
-                                    alt={item.product.name}
+                                    src={item.product.images?.[0] || "https://via.placeholder.com/100"}
+                                    alt={item.product?.name}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
 
