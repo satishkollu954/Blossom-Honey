@@ -165,11 +165,7 @@ const getApprovedProducts = asyncHandler(async (req, res) => {
 });
 
 const getProductById = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    res.status(404);
-    throw new Error("Product not found or invalid ID");
-  }
-
+  console.log("Fetching product by ID:", req.params.id);
   const product = await Product.findOne({
     _id: req.params.id,
     isApproved: true,

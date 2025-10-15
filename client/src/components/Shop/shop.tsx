@@ -76,10 +76,10 @@ const Shop: React.FC = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const res = await axios.get("http://localhost:3005/api/products/admin/", {
+                const res = await axios.get("http://localhost:3005/api/products/", {
                     headers: { Authorization: `Bearer ${cookies.token}` },
                 }); // adjust base URL if needed
-                setProducts(res.data);
+                setProducts(res.data.products || []);
             } catch (err) {
                 console.error("Error fetching products:", err);
                 setError("Failed to load products. Please try again later.");
