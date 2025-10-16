@@ -6,6 +6,7 @@ const Order = require("../Model/Order");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { createShipmentWithShiprocket } = require("../utils/shiprocket");
+const User = require("../Model/User");
 
 // --- Add to Cart ---
 const addToCart = asyncHandler(async (req, res) => {
@@ -207,13 +208,18 @@ const checkout = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { address, paymentType } = req.body; // address = full address object
 
-    // Find the address object by ID
-  const shippingAddress = user.addresses.id(addressId);
+  // console.log("address", address);
+  // console.log("payment type", paymentType);
+  // console.log("userid", userId);
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  // Find the address object by ID
+  const shippingAddress = user.addresses.id(address);
   if (!shippingAddress) throw new Error("Address not found");
-
+  console.log("shippingAddress", shippingAddress);
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
   if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
-
+  console.log("cart ", cart);
   // Check stock
   for (const item of cart.items) {
     const variant = item.product.variants.id(item.variantId);
@@ -238,7 +244,7 @@ const checkout = asyncHandler(async (req, res) => {
       images: variant.images,
     };
   });
-
+  console.log("----------------------------------");
   // --- Create Order in DB first ---
   const order = new Order({
     user: userId,

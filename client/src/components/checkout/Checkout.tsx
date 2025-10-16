@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
@@ -54,10 +52,13 @@ export const Checkout: React.FC = () => {
         country: "India",
     });
 
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     useEffect(() => {
         const fetchAddresses = async () => {
             try {
-                const res = await axios.get("http://localhost:3005/api/user/profile", {
+                const res = await axios.get(`${API_URL}/api/user/profile`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setAddresses(res.data.addresses || []);
@@ -101,33 +102,71 @@ export const Checkout: React.FC = () => {
         if (!selectedAddress) return toast.error("Please select an address");
         if (!paymentMethod) return toast.error("Please select a payment method");
 
-        const payload = {
-            addressId: selectedAddress,
-            paymentMethod,
-            items: cartItems.map((item: CartItem) => ({
-                productId: item.product._id,
-                variantId: item.variant._id,
-                quantity: item.quantity,
-                price: item.price,
-                weight: item.variant.weight,
-            })),
-            totalAmount: totalPrice * 100,
-        };
-
         try {
+            // --- Call backend checkout endpoint ---
+            const res = await axios.post(
+                "http://localhost:3005/api/cart/checkout",
+                {
+                    address: selectedAddress,
+                    paymentType: paymentMethod,
+                    items: cartItems.map((item: CartItem) => ({
+                        productId: item.product._id,
+                        variantId: item.variant._id,
+                        quantity: item.quantity,
+                        price: item.price,
+                        weight: item.variant.weight,
+                    })),
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
             if (paymentMethod === "COD") {
-                await axios.post("http://localhost:3005/api/order", payload, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                toast.success("Order placed successfully!");
+                toast.success("COD Order placed successfully!");
                 navigate("/orders");
-            } else {
-                // Razorpay Integration (can be added later)
-                toast.info("Redirecting to Razorpay...");
+            } else if (paymentMethod === "RAZORPAY") {
+                const { razorpayOrder, orderId } = res.data;
+
+                const options = {
+                    key: razorpayKey, // add your Razorpay key in .env
+                    amount: razorpayOrder.amount,
+                    currency: razorpayOrder.currency,
+                    name: "My Store",
+                    description: "Order Payment",
+                    order_id: razorpayOrder.id,
+                    handler: async (response: any) => {
+                        try {
+                            await axios.post(
+                                "http://localhost:3005/api/cart/payment/verify",
+                                {
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    orderId,
+                                },
+                                { headers: { Authorization: `Bearer ${token}` } }
+                            );
+                            toast.success("Payment successful! Order placed.");
+                            navigate("/orders");
+                        } catch (err) {
+                            console.error(err);
+                            toast.error("Payment verification failed!");
+                        }
+                    },
+                    prefill: {
+                        name: "",
+                        email: "",
+                        contact:
+                            addresses.find((a) => a._id === selectedAddress)?.phone || "",
+                    },
+                    theme: { color: "#f59e0b" },
+                };
+
+                const rzp = new (window as any).Razorpay(options);
+                rzp.open();
             }
-        } catch (error) {
-            console.error(error);
-            toast.error("Checkout failed");
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Checkout failed");
         }
     };
 
@@ -169,7 +208,8 @@ export const Checkout: React.FC = () => {
                                     checked={selectedAddress === addr._id}
                                     className="mr-2"
                                 />
-                                <span className="font-medium">{addr.fullName}</span> — {addr.phone}
+                                <span className="font-medium">{addr.fullName}</span> —{" "}
+                                {addr.phone}
                                 <p className="text-sm text-gray-600">
                                     {addr.street}, {addr.city}, {addr.state} - {addr.postalCode}
                                 </p>
@@ -286,9 +326,7 @@ export const Checkout: React.FC = () => {
                             <span>
                                 {item.product.name} ({item.variant.weight})
                             </span>
-                            <span>
-                                ₹{(item.price * item.quantity).toFixed(2)}
-                            </span>
+                            <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
                     <div className="flex justify-between mt-3 font-semibold text-lg">
