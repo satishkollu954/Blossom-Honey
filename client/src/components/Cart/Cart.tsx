@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import axios from "axios";
 import { useCookies } from "react-cookie";
 import { useCart } from "../context/cartcontext"
+import { useNavigate } from "react-router-dom";
 
 
 interface Product {
@@ -35,6 +36,8 @@ const Cart: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [cookies] = useCookies(["token"]);
     const { setCartCount } = useCart();
+
+    const navigate = useNavigate();
 
 
     const token = cookies.token;
@@ -233,8 +236,17 @@ const Cart: React.FC = () => {
                             </span>
                         </div>
 
-                        <button
+                        {/* <button
                             onClick={() => alert(`Proceeding to checkout. Total: ₹${totalPrice.toFixed(2)}`)}
+                            className="w-full mt-4 bg-yellow-500 text-white py-3 rounded-xl font-medium hover:bg-yellow-600 transition"
+                        >
+                            Proceed to Checkout
+                        </button> */}
+
+                        <button
+                            onClick={() =>
+                                navigate("/checkout", { state: { cartItems, totalPrice } })
+                            }
                             className="w-full mt-4 bg-yellow-500 text-white py-3 rounded-xl font-medium hover:bg-yellow-600 transition"
                         >
                             Proceed to Checkout
