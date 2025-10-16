@@ -2,6 +2,17 @@
 const mongoose = require("mongoose");
 
 // Single item in an order for Honey/Dry Fruits
+// Variant schema
+const variantSchema = new mongoose.Schema(
+  {
+    weight: { type: String },
+    type: { type: String },
+    packaging: { type: String },
+  },
+  { _id: false }
+);
+
+// Single item in an order
 const orderItemSchema = new mongoose.Schema(
   {
     product: {
@@ -14,14 +25,10 @@ const orderItemSchema = new mongoose.Schema(
       required: true, // reference to the specific variant
     },
     name: { type: String, required: true }, // product name
-    variant: {
-      weight: String,
-      type: String,
-      packaging: String,
-    },
+    variant: variantSchema, // ✅ use proper sub-schema here
     price: { type: Number, required: true }, // final price at purchase
     quantity: { type: Number, required: true },
-    images: [String], // optional: variant images
+    images: [String],
   },
   { _id: false }
 );
