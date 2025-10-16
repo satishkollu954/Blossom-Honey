@@ -360,6 +360,10 @@ export const Checkout: React.FC = () => {
                         </div>
                     ))}
                     <div className="flex justify-between mt-3 font-semibold text-lg">
+                        <span>Sub Total:</span>
+                        <span>₹{totalPrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between mt-3 font-semibold text-lg">
                         <span>Total:</span>
                         <span>₹{totalPrice.toFixed(2)}</span>
                     </div>

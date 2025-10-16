@@ -221,9 +221,9 @@ const ProductDetails: React.FC = () => {
                         onClick={() =>
                             !isInCart && handleCartClick(product._id, selectedVariant._id, 1)
                         }
-                        disabled={isInCart || selectedVariant.stock === 0} // ✅ disable if in cart or out of stock
+                        disabled={isInCart || selectedVariant.stock === 0}
                         className={`px-6 py-3 rounded-md text-lg font-semibold transition ${selectedVariant.stock === 0
-                            ? "bg-gray-400 text-white cursor-not-allowed" // Out of stock style
+                            ? "bg-gray-400 text-white cursor-not-allowed"
                             : isInCart
                                 ? "bg-gray-400 text-white cursor-not-allowed"
                                 : "bg-yellow-500 text-white hover:bg-yellow-600"
@@ -241,7 +241,7 @@ const ProductDetails: React.FC = () => {
 
                 <div className="mt-4 text-sm text-gray-500">
                     <p>Delivery Time: {product.deliveryTime}</p>
-                    <p>Shipping Charge: ₹{product.shippingCharge}</p>
+                    {/* <p>Shipping Charge: ₹50 (below 500 price product)</p> */}
                 </div>
             </div>
         </div>
