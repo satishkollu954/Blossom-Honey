@@ -345,6 +345,10 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
     orderId,
   } = req.body;
 
+  console.log("Verifying payment for order:", orderId);
+  const cart = await Cart.findOne({ user: req.user._id });
+  if (!cart) throw new Error("Cart not found");
+  
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
