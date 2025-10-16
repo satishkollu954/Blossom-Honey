@@ -241,6 +241,10 @@ const Cart: React.FC = () => {
                             <span className="text-xl font-bold text-gray-900">
                                 ₹{totalPrice.toFixed(2)}
                             </span>
+
+                        </div>
+                        <div>
+                            <span>Total Price below 500 shipping charge is ₹50</span>
                         </div>
 
                         {/* <button

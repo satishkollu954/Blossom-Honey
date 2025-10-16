@@ -45,7 +45,7 @@ const SuccessPage: React.FC = () => {
                     className="text-white/90 mb-6 text-lg leading-relaxed"
                 >
                     Thank you for shopping with{" "}
-                    <span className="font-semibold text-yellow-300">FitFusion</span>.
+                    <span className="font-semibold text-yellow-300">Blossom</span>.
                     A confirmation email has been sent to your registered email.
                 </motion.p>
 
