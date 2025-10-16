@@ -26,6 +26,7 @@ interface CartItem {
     variant: {
         _id: string;
         weight: string;
+        quantity: string;
     };
     price: number;
     quantity: number;
@@ -342,9 +343,19 @@ export const Checkout: React.FC = () => {
                             key={item.variant._id}
                             className="flex justify-between border-b py-2 text-sm"
                         >
-                            <span>
-                                {item.product.name} ({item.variant.weight})
-                            </span>
+                            <div className="flex flex-col">
+                                <span className="text-base font-semibold text-gray-800">
+                                    {item.product.name}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                    Weight: <span className="font-medium">{item.variant.weight}</span>
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                    Quantity: <span className="font-semibold text-amber-600">{item.quantity}</span>
+                                </span>
+                            </div>
+
+
                             <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
