@@ -14,6 +14,7 @@ interface Variant {
     finalPrice: number;
     discount: number;
     images: string[];
+    stock: number;
 }
 
 interface Product {
@@ -186,6 +187,11 @@ const ProductDetails: React.FC = () => {
                         Discount:  {selectedVariant.discount}%
                     </span>
                 </div>
+                <div>
+                    <span className="text-gray-500">
+                        stock:  {selectedVariant.stock}
+                    </span>
+                </div>
 
                 {/* Weight Selector */}
                 <div className="mb-6">
@@ -215,15 +221,22 @@ const ProductDetails: React.FC = () => {
                         onClick={() =>
                             !isInCart && handleCartClick(product._id, selectedVariant._id, 1)
                         }
-                        disabled={isInCart}
-                        className={`px-6 py-3 rounded-md text-lg font-semibold transition ${isInCart
+                        disabled={isInCart || selectedVariant.stock === 0} // ✅ disable if in cart or out of stock
+                        className={`px-6 py-3 rounded-md text-lg font-semibold transition ${selectedVariant.stock === 0
+                            ? "bg-gray-400 text-white cursor-not-allowed" // Out of stock style
+                            : isInCart
                                 ? "bg-gray-400 text-white cursor-not-allowed"
                                 : "bg-yellow-500 text-white hover:bg-yellow-600"
                             }`}
                     >
-                        {isInCart ? "Already in Cart" : "Add to Cart"}
+                        {selectedVariant.stock === 0
+                            ? "Out of Stock"
+                            : isInCart
+                                ? "Already in Cart"
+                                : "Add to Cart"}
                     </button>
                 )}
+
 
 
                 <div className="mt-4 text-sm text-gray-500">

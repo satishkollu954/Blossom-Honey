@@ -26,6 +26,7 @@ interface CartItem {
     variant: {
         _id: string;
         weight: string;
+        quantity: string;
     };
     price: number;
     quantity: number;
@@ -71,6 +72,24 @@ export const Checkout: React.FC = () => {
     }, [token]);
 
     const handleAddAddress = async () => {
+        // --- Validation ---
+        if (
+            !newAddress.fullName.trim() ||
+            !newAddress.phone.trim() ||
+            !newAddress.street?.trim() ||
+            !newAddress.city.trim() ||
+            !newAddress.state.trim() ||
+            !newAddress.postalCode.trim()
+        ) {
+            return toast.error("All fields are required!");
+        }
+
+        // Validate phone number (10 digits, numbers only)
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(newAddress.phone)) {
+            return toast.error("Phone number must be 10 digits!");
+        }
+
         try {
             await axios.post(
                 "http://localhost:3005/api/user/addresses",
@@ -98,6 +117,7 @@ export const Checkout: React.FC = () => {
         }
     };
 
+
     const handleCheckout = async () => {
         if (!selectedAddress) return toast.error("Please select an address");
         if (!paymentMethod) return toast.error("Please select a payment method");
@@ -122,7 +142,7 @@ export const Checkout: React.FC = () => {
 
             if (paymentMethod === "COD") {
                 toast.success("COD Order placed successfully!");
-                navigate("/orders");
+                navigate("/success");
             } else if (paymentMethod === "RAZORPAY") {
                 const { razorpayOrder, orderId } = res.data;
 
@@ -146,7 +166,7 @@ export const Checkout: React.FC = () => {
                                 { headers: { Authorization: `Bearer ${token}` } }
                             );
                             toast.success("Payment successful! Order placed.");
-                            navigate("/orders");
+                            navigate("/success");
                         } catch (err) {
                             console.error(err);
                             toast.error("Payment verification failed!");
@@ -323,9 +343,19 @@ export const Checkout: React.FC = () => {
                             key={item.variant._id}
                             className="flex justify-between border-b py-2 text-sm"
                         >
-                            <span>
-                                {item.product.name} ({item.variant.weight})
-                            </span>
+                            <div className="flex flex-col">
+                                <span className="text-base font-semibold text-gray-800">
+                                    {item.product.name}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                    Weight: <span className="font-medium">{item.variant.weight}</span>
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                    Quantity: <span className="font-semibold text-amber-600">{item.quantity}</span>
+                                </span>
+                            </div>
+
+
                             <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}

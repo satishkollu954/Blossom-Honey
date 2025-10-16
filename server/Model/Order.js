@@ -53,7 +53,11 @@ const orderSchema = new mongoose.Schema(
 
     totalAmount: { type: Number, required: true },
 
-    paymentType: { type: String, enum: ["COD", "Online"], default: "Online" },
+    paymentType: {
+      type: String,
+      enum: ["COD", "Online", "RAZORPAY"],
+      default: "Online",
+    },
     paymentStatus: {
       type: String,
       enum: ["Pending", "Paid", "Refunded"],

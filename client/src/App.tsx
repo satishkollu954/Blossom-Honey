@@ -22,6 +22,7 @@ import ProductDetails from "./components/ProductDetails/ProductDetails";
 import { MyOrders } from "./components/MyOrders/MyOrders";
 import Cart from "./components/Cart/Cart";
 import { Checkout } from "./components/checkout/Checkout";
+import SuccessPage from "./components/successpage/successpage";
 
 
 
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute allowedRole="user">
                 <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/success"
+            element={
+              <ProtectedRoute allowedRole="user">
+                <SuccessPage />
               </ProtectedRoute>
             }
           />
