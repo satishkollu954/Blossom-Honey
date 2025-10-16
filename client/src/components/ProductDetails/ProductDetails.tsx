@@ -32,7 +32,7 @@ const ProductDetails: React.FC = () => {
     const [product, setProduct] = useState<Product | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
     const [imageIndex, setImageIndex] = useState(0);
-    const [cookies] = useCookies(["token"]);
+    const [cookies] = useCookies(["token", "role"]);
     const { setCartCount } = useCart();
     const [isInCart, setIsInCart] = useState(false); // ✅ new state
 
@@ -165,7 +165,7 @@ const ProductDetails: React.FC = () => {
             </div>
 
             {/* RIGHT: Product Info */}
-            <div className="lg:w-1/2 flex flex-col justify-center -mt-8">
+            <div className="lg:w-1/2 flex flex-col justify-center -mt-6">
                 <h1 className="text-3xl font-semibold mb-3 text-gray-800">
                     {product.name}
                 </h1>
@@ -181,6 +181,11 @@ const ProductDetails: React.FC = () => {
                         </span>
                     )}
                 </div>
+                <div>
+                    <span className="text-gray-500">
+                        Discount:  {selectedVariant.discount}%
+                    </span>
+                </div>
 
                 {/* Weight Selector */}
                 <div className="mb-6">
@@ -194,8 +199,8 @@ const ProductDetails: React.FC = () => {
                                     setIsInCart(false); // ✅ reset on variant change
                                 }}
                                 className={`px-4 py-2 border rounded-md ${selectedVariant._id === v._id
-                                        ? "bg-yellow-500 text-white border-yellow-500"
-                                        : "border-gray-300 hover:border-yellow-400"
+                                    ? "bg-yellow-500 text-white border-yellow-500"
+                                    : "border-gray-300 hover:border-yellow-400"
                                     }`}
                             >
                                 {v.weight}
@@ -205,20 +210,23 @@ const ProductDetails: React.FC = () => {
                 </div>
 
                 {/* ✅ Add to Cart / Already in Cart Button */}
-                <button
-                    onClick={() =>
-                        !isInCart && handleCartClick(product._id, selectedVariant._id, 1)
-                    }
-                    disabled={isInCart}
-                    className={`px-6 py-3 rounded-md text-lg font-semibold transition ${isInCart
-                            ? "bg-gray-400 text-white cursor-not-allowed"
-                            : "bg-yellow-500 text-white hover:bg-yellow-600"
-                        }`}
-                >
-                    {isInCart ? "Already in Cart" : "Add to Cart"}
-                </button>
+                {cookies.role !== "admin" && (
+                    <button
+                        onClick={() =>
+                            !isInCart && handleCartClick(product._id, selectedVariant._id, 1)
+                        }
+                        disabled={isInCart}
+                        className={`px-6 py-3 rounded-md text-lg font-semibold transition ${isInCart
+                                ? "bg-gray-400 text-white cursor-not-allowed"
+                                : "bg-yellow-500 text-white hover:bg-yellow-600"
+                            }`}
+                    >
+                        {isInCart ? "Already in Cart" : "Add to Cart"}
+                    </button>
+                )}
 
-                <div className="mt-6 text-sm text-gray-500">
+
+                <div className="mt-4 text-sm text-gray-500">
                     <p>Delivery Time: {product.deliveryTime}</p>
                     <p>Shipping Charge: ₹{product.shippingCharge}</p>
                 </div>

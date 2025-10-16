@@ -21,6 +21,8 @@ import UsersList from "./components/AllUsers/AllUsers";
 import ProductDetails from "./components/ProductDetails/ProductDetails";
 import { MyOrders } from "./components/MyOrders/MyOrders";
 import Cart from "./components/Cart/Cart";
+import { Checkout } from "./components/checkout/Checkout";
+
 
 
 
@@ -94,6 +96,15 @@ function App() {
             element={
               <ProtectedRoute allowedRole="user">
                 <MyOrders />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute allowedRole="user">
+                <Checkout />
               </ProtectedRoute>
             }
           />
