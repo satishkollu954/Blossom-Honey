@@ -71,6 +71,24 @@ export const Checkout: React.FC = () => {
     }, [token]);
 
     const handleAddAddress = async () => {
+        // --- Validation ---
+        if (
+            !newAddress.fullName.trim() ||
+            !newAddress.phone.trim() ||
+            !newAddress.street?.trim() ||
+            !newAddress.city.trim() ||
+            !newAddress.state.trim() ||
+            !newAddress.postalCode.trim()
+        ) {
+            return toast.error("All fields are required!");
+        }
+
+        // Validate phone number (10 digits, numbers only)
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(newAddress.phone)) {
+            return toast.error("Phone number must be 10 digits!");
+        }
+
         try {
             await axios.post(
                 "http://localhost:3005/api/user/addresses",
@@ -97,6 +115,7 @@ export const Checkout: React.FC = () => {
             toast.error("Failed to add address");
         }
     };
+
 
     const handleCheckout = async () => {
         if (!selectedAddress) return toast.error("Please select an address");

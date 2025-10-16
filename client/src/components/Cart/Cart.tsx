@@ -19,10 +19,11 @@ interface CartItem {
     variant: {
         _id: string;
         weight: string;
+        stock: number;
     };
     price: number;
     quantity: number;
-    stock: number;
+
 }
 
 
@@ -66,8 +67,11 @@ const Cart: React.FC = () => {
         );
         if (!item) return;
 
+        if (item.quantity >= item.variant.stock) return; // ✅ check against variant stock
+        // ✅ prevent increment beyond stock
+
         const newQuantity = item.quantity + 1;
-        console.log(variantId, productId, newQuantity);
+
         try {
             await axios.put(
                 "http://localhost:3005/api/cart/update",
@@ -75,7 +79,6 @@ const Cart: React.FC = () => {
                 { headers: { Authorization: token ? `Bearer ${token}` : "" } }
             );
 
-            // Update local state
             setCartItems((prev) =>
                 prev.map((i) =>
                     i.product._id === productId && i.variant._id === variantId
@@ -87,6 +90,7 @@ const Cart: React.FC = () => {
             console.error("Failed to increment quantity:", error);
         }
     };
+
 
     // Decrement quantity
     const handleDecrement = async (productId: string, variantId: string) => {
@@ -204,10 +208,13 @@ const Cart: React.FC = () => {
                                             <button
                                                 onClick={() => handleIncrement(item.product._id, item.variant._id)}
                                                 className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                                                disabled={item.quantity >= (item.stock || Infinity)} // Disable increment if quantity reaches stock
-                                            >
-                                                +
-                                            </button>
+                                                disabled={item.quantity >= item.variant.stock} // ✅ use variant.stock
+                                                title={item.quantity >= item.variant.stock ? "Max stock reached" : ""}
+
+                                            >+</button>
+
+
+
                                         </div>
 
                                         <div className="text-right">
