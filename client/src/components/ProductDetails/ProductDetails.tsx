@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useCookies } from "react-cookie";
+import { useCart } from "../context/cartcontext";
 
 interface Variant {
     _id: string;
@@ -32,8 +33,10 @@ const ProductDetails: React.FC = () => {
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
     const [imageIndex, setImageIndex] = useState(0);
     const [cookies] = useCookies(["token"]);
+    const { setCartCount } = useCart();
+    const [isInCart, setIsInCart] = useState(false); // ✅ new state
 
-    // Fetch product details
+    // ✅ Fetch product details
     useEffect(() => {
         const fetchProduct = async () => {
             try {
@@ -48,6 +51,28 @@ const ProductDetails: React.FC = () => {
         };
         fetchProduct();
     }, [id]);
+
+    // ✅ Check if item is already in cart
+    useEffect(() => {
+        const checkCart = async () => {
+            if (!selectedVariant) return;
+            try {
+                const token = cookies.token;
+                const res = await axios.get("http://localhost:3005/api/cart", {
+                    headers: { Authorization: token ? `Bearer ${token}` : "" },
+                });
+
+                const isItemInCart = res.data.items.some(
+                    (item: any) =>
+                        item.product._id === id && item.variant._id === selectedVariant._id
+                );
+                setIsInCart(isItemInCart);
+            } catch (error) {
+                console.error("Failed to check cart:", error);
+            }
+        };
+        checkCart();
+    }, [selectedVariant, id, cookies.token]);
 
     if (!product || !selectedVariant) {
         return (
@@ -70,7 +95,7 @@ const ProductDetails: React.FC = () => {
         setImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
     };
 
-    // ✅ Add to Cart Function
+    // ✅ Add to Cart Function (with badge + disable)
     async function handleCartClick(
         productId: string,
         variantId: string,
@@ -87,10 +112,12 @@ const ProductDetails: React.FC = () => {
                         Authorization: token ? `Bearer ${token}` : "",
                     },
                 }
-
             );
+
             toast.success(res.data.message || "Added to cart successfully!");
-            console.log("Cart data:", res.data.cart);
+            setCartCount((prev) => prev + 1);
+            setIsInCart(true); // ✅ disable button after adding
+
         } catch (error: any) {
             console.error("Add to Cart Error:", error);
             toast.error(
@@ -111,21 +138,18 @@ const ProductDetails: React.FC = () => {
                     alt={product.name}
                     className="w-full h-[400px] object-contain rounded-lg shadow-md bg-white"
                 />
-
                 <button
                     onClick={prevImage}
                     className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-yellow-50"
                 >
                     <ChevronLeft size={24} />
                 </button>
-
                 <button
                     onClick={nextImage}
                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-yellow-50"
                 >
                     <ChevronRight size={24} />
                 </button>
-
                 <div className="flex gap-2 mt-4">
                     {allImages.map((img, i) => (
                         <img
@@ -165,10 +189,13 @@ const ProductDetails: React.FC = () => {
                         {product.variants.map((v) => (
                             <button
                                 key={v._id}
-                                onClick={() => setSelectedVariant(v)}
+                                onClick={() => {
+                                    setSelectedVariant(v);
+                                    setIsInCart(false); // ✅ reset on variant change
+                                }}
                                 className={`px-4 py-2 border rounded-md ${selectedVariant._id === v._id
-                                    ? "bg-yellow-500 text-white border-yellow-500"
-                                    : "border-gray-300 hover:border-yellow-400"
+                                        ? "bg-yellow-500 text-white border-yellow-500"
+                                        : "border-gray-300 hover:border-yellow-400"
                                     }`}
                             >
                                 {v.weight}
@@ -177,14 +204,18 @@ const ProductDetails: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ✅ Corrected Add to Cart Button */}
+                {/* ✅ Add to Cart / Already in Cart Button */}
                 <button
                     onClick={() =>
-                        handleCartClick(product._id, selectedVariant._id, 1)
+                        !isInCart && handleCartClick(product._id, selectedVariant._id, 1)
                     }
-                    className="bg-yellow-500 text-white px-6 py-3 rounded-md text-lg font-semibold hover:bg-yellow-600 transition"
+                    disabled={isInCart}
+                    className={`px-6 py-3 rounded-md text-lg font-semibold transition ${isInCart
+                            ? "bg-gray-400 text-white cursor-not-allowed"
+                            : "bg-yellow-500 text-white hover:bg-yellow-600"
+                        }`}
                 >
-                    Add to Cart
+                    {isInCart ? "Already in Cart" : "Add to Cart"}
                 </button>
 
                 <div className="mt-6 text-sm text-gray-500">

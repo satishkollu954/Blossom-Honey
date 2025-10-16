@@ -36,6 +36,7 @@ const addToCart = asyncHandler(async (req, res) => {
       product: productId,
       variantId,
       quantity,
+      weight: variant.weight,
       price: variant.finalPrice,
       weight: variant.weight,
       subtotal: variant.finalPrice * quantity,

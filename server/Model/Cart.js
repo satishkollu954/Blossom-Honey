@@ -2,9 +2,14 @@
 const mongoose = require("mongoose");
 
 const cartItemSchema = new mongoose.Schema({
-  product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
+  },
   variantId: { type: mongoose.Schema.Types.ObjectId, required: true },
   quantity: { type: Number, default: 1, min: 1 },
+  weight: { type: String, required: true },
   price: { type: Number, required: true },
   weight: { type: String, required: true },
   subtotal: { type: Number, required: true },
@@ -12,7 +17,12 @@ const cartItemSchema = new mongoose.Schema({
 
 const cartSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
     items: [cartItemSchema],
     coupon: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon" },
     discountAmount: { type: Number, default: 0 },
@@ -20,7 +30,7 @@ const cartSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-        
+
 // Auto update total and discount
 cartSchema.pre("save", function (next) {
   // Remove out-of-stock variants automatically

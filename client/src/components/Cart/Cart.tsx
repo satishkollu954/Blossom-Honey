@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import axios from "axios";
 import { useCookies } from "react-cookie";
+import { useCart } from "../context/cartcontext"
+
 
 interface Product {
     _id: string;
@@ -11,7 +13,7 @@ interface Product {
 
 interface CartItem {
     _id: string;
-   // variantId: string;
+    // variantId: string;
     product: Product;
     variant: {
         _id: string;
@@ -32,6 +34,8 @@ const Cart: React.FC = () => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [cookies] = useCookies(["token"]);
+    const { setCartCount } = useCart();
+
 
     const token = cookies.token;
 
@@ -42,6 +46,7 @@ const Cart: React.FC = () => {
                     headers: { Authorization: token ? `Bearer ${token}` : "" },
                 });
                 setCartItems(res.data.items || []);
+                setCartCount(res.data.items?.length || 0);
             } catch (error) {
                 console.error("Failed to load cart:", error);
             } finally {
@@ -118,11 +123,15 @@ const Cart: React.FC = () => {
                 data: { productId, variantId },
             });
 
-            setCartItems((prev) =>
-                prev.filter(
+            // After removing item
+            setCartItems((prev) => {
+                const updated = prev.filter(
                     (item) => !(item.product._id === productId && item.variant._id === variantId)
-                )
-            );
+                );
+                setCartCount(updated.length);
+                return updated;
+            });
+
         } catch (error) {
             console.error("Failed to remove item:", error);
         }
@@ -158,8 +167,8 @@ const Cart: React.FC = () => {
                                 className="flex gap-4 items-center p-4 border rounded-xl hover:shadow-md transition"
                             >
                                 <img
-                                    src={item.product.images[0] || "https://via.placeholder.com/100"}
-                                    alt={item.product.name}
+                                    src={item.product.images?.[0] || "https://via.placeholder.com/100"}
+                                    alt={item.product?.name}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
 
