@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
 import { useCookies } from "react-cookie";
+import { useCart } from "../context/cartcontext";
+
 
 export function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +13,8 @@ export function Navbar() {
 
     const role = cookies.role;
     const isLoggedIn = role === "user" || role === "admin";
+    const { cartCount } = useCart();
+
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -73,15 +77,19 @@ export function Navbar() {
                         {role !== "admin" && (
                             <Link
                                 to="/cart"
-                                className="relative flex items-center gap-1 text-gray-800 hover:text-amber-500 transition"
+                                className="relative flex items-center text-gray-800 hover:text-amber-500 transition"
                             >
                                 <ShoppingCart size={22} />
-                                <span
-                                    className="ml-1 text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full"
-                                >
-                                    1
-                                </span>
+                                {cartCount > 0 && (
+                                    <span
+                                        className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-md"
+                                    >
+                                        {cartCount}
+                                    </span>
+                                )}
                             </Link>
+
+
 
 
                         )}
@@ -187,11 +195,19 @@ export function Navbar() {
                             {role !== "admin" && (
                                 <Link
                                     to="/cart"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="text-gray-800 hover:text-amber-500 transition flex items-center space-x-2"
+                                    className="relative flex items-center text-gray-800 hover:text-amber-500 transition"
                                 >
-                                    <ShoppingCart size={20} />
+                                    <ShoppingCart size={22} />
+                                    {cartCount > 0 && (
+                                        <span
+                                            className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-md"
+                                        >
+                                            {cartCount}
+                                        </span>
+                                    )}
                                 </Link>
+
+
                             )}
 
                             {/* Profile for Mobile */}
