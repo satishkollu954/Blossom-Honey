@@ -15,6 +15,7 @@ const app = express();
 const cartRoutes = require("./Routes/cartRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
 const orderRoutes = require("./Routes/orderRoutes");
+const couponRoutes = require("./Routes/couponRoutes");
 
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((origin) => origin.trim())
@@ -32,7 +33,9 @@ app.use(
   })
 );
 
-const { startDeliveryTrackingJob } = require("./utils/shiprocketTracker");
+const {
+  startDeliveryTrackingJob,
+} = require("../server/utils/shiprocketTracker");
 
 // Start the cron job
 startDeliveryTrackingJob();
@@ -51,6 +54,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/coupons", couponRoutes);
 
 // Optional: serve local uploads if needed
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));

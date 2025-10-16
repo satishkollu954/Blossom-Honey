@@ -17,7 +17,7 @@ cloudinary.config({
  * @param {string} productId
  * @param {string} subFolder - "images" or "variants"
  * @param {"image"|"video"} resourceType
-*/
+ */
 const createUploader = (fileBuffer, folder, filename) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -42,7 +42,19 @@ const extractFileUrls = (files) => {
   return [];
 };
 
-module.exports = { createUploader, extractFileUrls };
- 
+const deleteCloudinaryFolder = async (folderPath) => {
+  try {
+    // Delete all resources inside the folder
+    await cloudinary.api.delete_resources_by_prefix(folderPath);
 
- 
+    // Then delete the empty folder itself
+    await cloudinary.api.delete_folder(folderPath);
+
+    console.log(`✅ Cloudinary folder deleted: ${folderPath}`);
+  } catch (error) {
+    console.error(`❌ Error deleting Cloudinary folder ${folderPath}:`, error.message);
+  }
+};
+
+module.exports = { createUploader, extractFileUrls, deleteCloudinaryFolder };
+//module.exports = { createUploader, extractFileUrls };

@@ -207,6 +207,10 @@ const checkout = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { address, paymentType } = req.body; // address = full address object
 
+    // Find the address object by ID
+  const shippingAddress = user.addresses.id(addressId);
+  if (!shippingAddress) throw new Error("Address not found");
+
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
   if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
 
@@ -239,7 +243,7 @@ const checkout = asyncHandler(async (req, res) => {
   const order = new Order({
     user: userId,
     products: orderProducts,
-    shippingAddress: address,
+    shippingAddress,
     totalAmount: cart.totalAmount,
     paymentType: paymentType || "Online",
     paymentStatus: paymentType === "COD" ? "Pending" : "Pending", // online: pending until verified
@@ -274,7 +278,27 @@ const checkout = asyncHandler(async (req, res) => {
       deliveryAddress: order.shippingAddress,
       deliveryStatus: "Pending",
     };
-    await createShipmentWithShiprocket(order);
+
+    // --- Calculate total weight & max dimensions ---
+    let totalWeight = 0;
+    let dimensions = { length: 0, breadth: 0, height: 0 };
+
+    cart.items.forEach((item) => {
+      const variant = item.product.variants.id(item.variantId);
+      const quantity = item.quantity;
+
+      totalWeight += (variant.weight || 0.5) * quantity; // default 0.5kg if weight missing
+
+      // For simplicity, use largest dimensions among variants
+      if (variant.length && variant.length > dimensions.length)
+        dimensions.length = variant.length;
+      if (variant.breadth && variant.breadth > dimensions.breadth)
+        dimensions.breadth = variant.breadth;
+      if (variant.height && variant.height > dimensions.height)
+        dimensions.height = variant.height;
+    });
+
+    await createShipmentWithShiprocket(order, { totalWeight, dimensions });
     return res.json({ message: "COD Order placed successfully", order });
   }
 
@@ -331,7 +355,27 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   order.paymentStatus = "Paid";
   order.status = "Placed"; // can keep processing/shipped flow
   await order.save();
-  await createShipmentWithShiprocket(order);
+
+  // --- Calculate total weight & max dimensions ---
+  let totalWeight = 0;
+  let dimensions = { length: 0, breadth: 0, height: 0 };
+
+  cart.items.forEach((item) => {
+    const variant = item.product.variants.id(item.variantId);
+    const quantity = item.quantity;
+
+    totalWeight += (variant.weight || 0.5) * quantity; // default 0.5kg if weight missing
+
+    // For simplicity, use largest dimensions among variants
+    if (variant.length && variant.length > dimensions.length)
+      dimensions.length = variant.length;
+    if (variant.breadth && variant.breadth > dimensions.breadth)
+      dimensions.breadth = variant.breadth;
+    if (variant.height && variant.height > dimensions.height)
+      dimensions.height = variant.height;
+  });
+
+  await createShipmentWithShiprocket(order, { totalWeight, dimensions });
   res.json({ message: "Payment successful, order placed", order });
 });
 
