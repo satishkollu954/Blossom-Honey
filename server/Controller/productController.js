@@ -9,25 +9,7 @@ const {
 // =========================================================================
 const { cloudinary } = require("../Middleware/newmiddleware");
 
-// Helper: upload buffer to Cloudinary
-/*
-const uploadToCloudinary = (fileBuffer, folder, filename) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder, // folder path
-        public_id: filename, // file name
-        resource_type: "image", // ensure it’s treated as image
-        overwrite: true,
-      },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result.secure_url);
-      }
-    );
-    stream.end(fileBuffer);
-  });
-*/
+const { deleteCloudinaryFolder } = require("../Middleware/uploadMiddleware");
 
 // Generate SKU
 function generateSKU(productName) {
@@ -381,6 +363,11 @@ const deleteVariant = asyncHandler(async (req, res) => {
   if (product.variants.length === 0) {
     console.log("No variants left, deleting product");
     await Product.findByIdAndDelete(productId);
+
+    // Delete associated images from Cloudinary
+   const folderPath = `BlossomHoney/products/${product._id}`;
+   await deleteCloudinaryFolder(folderPath);
+
     return res.status(200).json({
       message: "Last variant deleted — product also removed",
       productDeleted: true,
@@ -413,6 +400,11 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 
   await product.deleteOne();
+
+ // Delete associated images from Cloudinary
+  const folderPath = `BlossomHoney/products/${product._id}`;
+  await deleteCloudinaryFolder(folderPath);
+
   res.json({ message: "Product removed successfully" });
 });
 

@@ -68,9 +68,10 @@ const orderSchema = new mongoose.Schema(
     },
 
     delivery: {
-      partner: { type: String, default: null },
+      partner: { type: String, default: null }, // e.g., ShipRocket
       trackingId: { type: String, default: null },
-      awbNumber: { type: String, default: null },
+      awbNumber: { type: String, default: null }, // ShipRocket AWB
+      shipmentId: { type: Number, default: null }, // ShipRocket shipment id
       pickupAddress: { type: String, default: null },
       deliveryAddress: { type: String, default: null },
       deliveryStatus: {

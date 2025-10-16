@@ -1,3 +1,4 @@
+//server/utils/shiprocket.js
 const axios = require("axios");
 
 const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL;
@@ -19,7 +20,7 @@ async function getShiprocketToken() {
 }
 
 // ✅ Create Shipment
-async function createShipmentWithShiprocket(order) {
+async function createShipmentWithShiprocket(order, { totalWeight = 1, dimensions = { length: 10, breadth: 10, height: 10 } } = {}) {
   const token = await getShiprocketToken();
 
   const shipmentData = {
@@ -45,20 +46,16 @@ async function createShipmentWithShiprocket(order) {
     })),
     payment_method: order.paymentType === "COD" ? "COD" : "Prepaid",
     sub_total: order.totalAmount,
-    length: 10,
-    breadth: 10,
-    height: 10,
-    weight: 1,
+    weight: totalWeight,
+    length: dimensions.length,
+    breadth: dimensions.breadth,
+    height: dimensions.height,
   };
 
   const response = await axios.post(
     "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
     shipmentData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    { headers: { Authorization: `Bearer ${token}` } }
   );
 
   const data = response.data;
@@ -73,5 +70,6 @@ async function createShipmentWithShiprocket(order) {
 
   return data;
 }
+
 
 module.exports = { createShipmentWithShiprocket };
