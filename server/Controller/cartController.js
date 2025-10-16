@@ -76,6 +76,11 @@ const getCart = asyncHandler(async (req, res) => {
         ? {
             _id: variant._id,
             weight: variant.weight,
+            stock: variant.stock,
+            price: variant.price,
+            finalPrice: variant.finalPrice,
+            type: variant.type,
+            packaging: variant.packaging,
           }
         : null,
       price: item.price,
@@ -294,7 +299,7 @@ const checkout = asyncHandler(async (req, res) => {
         dimensions.height = variant.height;
     }
 
-    await createShipmentWithShiprocket(order, { totalWeight, dimensions });
+    // await createShipmentWithShiprocket(order, { totalWeight, dimensions });
     await order.save();
 
     // Clear cart after order is created
@@ -386,7 +391,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
       dimensions.height = variant.height;
   });
 
-  await createShipmentWithShiprocket(order, { totalWeight, dimensions });
+  //  await createShipmentWithShiprocket(order, { totalWeight, dimensions });
   res.json({ message: "Payment successful, order placed", order });
 });
 
