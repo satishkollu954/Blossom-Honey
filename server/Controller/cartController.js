@@ -376,7 +376,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   let totalWeight = 0;
   let dimensions = { length: 0, breadth: 0, height: 0 };
 
-  cart.items.forEach((item) => {
+  Cart.items.forEach((item) => {
     const variant = item.product.variants.id(item.variantId);
     const quantity = item.quantity;
 

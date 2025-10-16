@@ -142,7 +142,7 @@ export const Checkout: React.FC = () => {
 
             if (paymentMethod === "COD") {
                 toast.success("COD Order placed successfully!");
-                navigate("/orders");
+                navigate("/success");
             } else if (paymentMethod === "RAZORPAY") {
                 const { razorpayOrder, orderId } = res.data;
 
@@ -166,7 +166,7 @@ export const Checkout: React.FC = () => {
                                 { headers: { Authorization: `Bearer ${token}` } }
                             );
                             toast.success("Payment successful! Order placed.");
-                            navigate("/orders");
+                            navigate("/success");
                         } catch (err) {
                             console.error(err);
                             toast.error("Payment verification failed!");
