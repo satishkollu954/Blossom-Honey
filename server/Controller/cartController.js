@@ -6,6 +6,7 @@ const Order = require("../Model/Order");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { createShipmentWithShiprocket } = require("../utils/shiprocket");
+const User = require("../Model/User");
 
 // --- Add to Cart ---
 const addToCart = asyncHandler(async (req, res) => {
@@ -205,23 +206,27 @@ const razorpay = new Razorpay({
 // --- Checkout & Create Razorpay Order (Online) OR COD ---
 const checkout = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { address, paymentType } = req.body; // address = full address object
+  const { address, paymentType } = req.body;
 
-    // Find the address object by ID
-  const shippingAddress = user.addresses.id(addressId);
+  // Fetch user and get shipping address
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+
+  const shippingAddress = user.addresses.id(address);
   if (!shippingAddress) throw new Error("Address not found");
 
+  // Fetch cart
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
   if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
 
-  // Check stock
+  // Check stock for each variant
   for (const item of cart.items) {
     const variant = item.product.variants.id(item.variantId);
     if (!variant || variant.stock < item.quantity)
       throw new Error(`${item.product.name} variant out of stock`);
   }
 
-  // Prepare order products
+  // Prepare order items
   const orderProducts = cart.items.map((item) => {
     const variant = item.product.variants.id(item.variantId);
     return {
@@ -239,39 +244,31 @@ const checkout = asyncHandler(async (req, res) => {
     };
   });
 
-  // --- Create Order in DB first ---
+  // Create order
   const order = new Order({
     user: userId,
     products: orderProducts,
     shippingAddress,
     totalAmount: cart.totalAmount,
     paymentType: paymentType || "Online",
-    paymentStatus: paymentType === "COD" ? "Pending" : "Pending", // online: pending until verified
+    paymentStatus: "Pending",
     coupon: cart.coupon,
     discountAmount: cart.discountAmount,
   });
 
   await order.save();
 
-  // --- Decrease stock temporarily ---
+  // Decrease stock
   for (const item of cart.items) {
     const variant = item.product.variants.id(item.variantId);
     variant.stock -= item.quantity;
     await item.product.save();
   }
 
-  // --- Clear cart ---
-  cart.items = [];
-  cart.coupon = null;
-  cart.discountAmount = 0;
-  cart.totalAmount = 0;
-  await cart.save();
-
+  // Handle COD order
   if (paymentType === "COD") {
-    // COD: order placed immediately
-    order.paymentStatus = "Pending";
     order.status = "Placed";
-    await order.save();
+    order.paymentStatus = "Pending";
     order.delivery = {
       partner: "Shiprocket",
       pickupAddress: "Seller Warehouse Address",
@@ -279,32 +276,40 @@ const checkout = asyncHandler(async (req, res) => {
       deliveryStatus: "Pending",
     };
 
-    // --- Calculate total weight & max dimensions ---
+    // Calculate total weight & dimensions for shipment
     let totalWeight = 0;
     let dimensions = { length: 0, breadth: 0, height: 0 };
-
-    cart.items.forEach((item) => {
+    for (const item of cart.items) {
       const variant = item.product.variants.id(item.variantId);
       const quantity = item.quantity;
 
-      totalWeight += (variant.weight || 0.5) * quantity; // default 0.5kg if weight missing
+      totalWeight += (variant.weight || 0.5) * quantity; // default 0.5kg
 
-      // For simplicity, use largest dimensions among variants
+      // Use largest dimensions
       if (variant.length && variant.length > dimensions.length)
         dimensions.length = variant.length;
       if (variant.breadth && variant.breadth > dimensions.breadth)
         dimensions.breadth = variant.breadth;
       if (variant.height && variant.height > dimensions.height)
         dimensions.height = variant.height;
-    });
+    }
 
     await createShipmentWithShiprocket(order, { totalWeight, dimensions });
+    await order.save();
+
+    // Clear cart after order is created
+    cart.items = [];
+    cart.totalAmount = 0;
+    cart.coupon = null;
+    cart.discountAmount = 0;
+    await cart.save();
+
     return res.json({ message: "COD Order placed successfully", order });
   }
 
-  // --- Online Payment: Create Razorpay Order ---
+  // Handle Online payment (Razorpay)
   const options = {
-    amount: order.totalAmount * 100, // in paise
+    amount: order.totalAmount * 100, // paise
     currency: "INR",
     receipt: order._id.toString(),
     payment_capture: 1,
@@ -312,7 +317,13 @@ const checkout = asyncHandler(async (req, res) => {
 
   const razorpayOrder = await razorpay.orders.create(options);
 
-  // Send razorpay order details to frontend for payment
+  // Clear cart (optional: can wait until payment is verified)
+  cart.items = [];
+  cart.totalAmount = 0;
+  cart.coupon = null;
+  cart.discountAmount = 0;
+  await cart.save();
+
   res.json({
     message: "Order created, proceed to payment",
     orderId: order._id,
