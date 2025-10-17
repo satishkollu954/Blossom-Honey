@@ -98,7 +98,10 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
   if (!cart) throw new Error("Cart not found");
 
-  const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+  const coupon = await Coupon.findOne({
+    code: code.toUpperCase(),
+    isActive: true,
+  });
   if (!coupon) throw new Error("Invalid or expired coupon");
 
   // Check expiry
@@ -112,9 +115,13 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)
     throw new Error("Coupon usage limit reached");
 
-  // Check once per user
-  if (coupon.oncePerUser && coupon.usedBy.includes(userId))
+  // ✅ FIX: Compare userId correctly
+  if (
+    coupon.oncePerUser &&
+    coupon.usedBy.some((u) => u.toString() === userId.toString())
+  ) {
     throw new Error("You have already used this coupon");
+  }
 
   // Optional: category-based restriction
   if (
@@ -136,10 +143,18 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
 
   if (discountAmount > cart.totalAmount) discountAmount = cart.totalAmount;
 
+  // ✅ Apply coupon to cart
   cart.coupon = coupon._id;
   cart.discountAmount = discountAmount;
   cart.totalAmount = cart.totalAmount - discountAmount;
   await cart.save();
+
+  // ✅ Update coupon usage tracking
+  coupon.usedCount += 1;
+  if (coupon.oncePerUser) {
+    coupon.usedBy.push(userId);
+  }
+  await coupon.save();
 
   res.json({
     message: "Coupon applied successfully",
