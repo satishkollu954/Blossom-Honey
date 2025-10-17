@@ -9,14 +9,14 @@ const {
   applyCouponToCart,
   removeCouponFromCart,
 } = require("../Controller/couponController");
-const { protect, adminAuth } = require("../Middleware/auth");
+const { protect, admin } = require("../Middleware/authMiddleware");
 
 // 🔹 Admin routes
-router.post("/", adminAuth, createCoupon);
-router.get("/", adminAuth, getAllCoupons);
-router.get("/:id", adminAuth, getCouponById);
-router.put("/:id", adminAuth, updateCoupon);
-router.delete("/:id", adminAuth, deleteCoupon);
+router.post("/", admin, createCoupon);
+router.get("/", admin, getAllCoupons);
+router.get("/:id", admin, getCouponById);
+router.put("/:id", admin, updateCoupon);
+router.delete("/:id", admin, deleteCoupon);
 
 // 🔹 User routes
 router.post("/apply", protect, applyCouponToCart);

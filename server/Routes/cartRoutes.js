@@ -6,7 +6,6 @@ const {
   getCart,
   updateCartItem,
   removeCartItem,
-  applyCoupon,
   syncGuestCart,
   checkout,
   verifyOnlinePayment,
@@ -16,7 +15,7 @@ router.post("/add", protect, addToCart);
 router.get("/", protect, getCart);
 router.put("/update", protect, updateCartItem);
 router.delete("/remove/:productId/:variantId", protect, removeCartItem);
-router.post("/apply-coupon", protect, applyCoupon);
+//router.post("/apply-coupon", protect, applyCoupon);
 //router.post("/sync", protect, syncGuestCart);
 // Checkout + create Razorpay order / COD
 router.post("/checkout", protect, checkout);
