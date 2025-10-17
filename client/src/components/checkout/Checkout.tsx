@@ -8,13 +8,11 @@ interface Address {
     _id?: string;
     fullName: string;
     phone: string;
-    street?: string;
+    street: string;
     city: string;
     state: string;
     postalCode: string;
     country?: string;
-    landmark?: string;
-    isDefault?: boolean;
 }
 
 interface CartItem {
@@ -26,7 +24,6 @@ interface CartItem {
     variant: {
         _id: string;
         weight: string;
-        quantity: string;
     };
     price: number;
     quantity: number;
@@ -53,6 +50,11 @@ export const Checkout: React.FC = () => {
         country: "India",
     });
 
+    const [couponCode, setCouponCode] = useState("");
+    const [discount, setDiscount] = useState(0);
+    const [shippingCharge, setShippingCharge] = useState(totalPrice < 500 ? 50 : 0);
+    const [finalAmount, setFinalAmount] = useState(totalPrice + shippingCharge);
+
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -71,64 +73,42 @@ export const Checkout: React.FC = () => {
         fetchAddresses();
     }, [token]);
 
-    const handleAddAddress = async () => {
-        // --- Validation ---
-        if (
-            !newAddress.fullName.trim() ||
-            !newAddress.phone.trim() ||
-            !newAddress.street?.trim() ||
-            !newAddress.city.trim() ||
-            !newAddress.state.trim() ||
-            !newAddress.postalCode.trim()
-        ) {
-            return toast.error("All fields are required!");
-        }
+    useEffect(() => {
+        const shipping = totalPrice < 500 ? 50 : 0;
+        setShippingCharge(shipping);
+        setFinalAmount(totalPrice - discount + shipping);
+    }, [totalPrice, discount]);
 
-        // Validate phone number (10 digits, numbers only)
-        const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(newAddress.phone)) {
-            return toast.error("Phone number must be 10 digits!");
-        }
-
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return toast.error("Enter a coupon code");
         try {
-            await axios.post(
-                "http://localhost:3005/api/user/addresses",
-                newAddress,
+            const res = await axios.post(
+                `${API_URL}/api/coupons/apply`,
+                { code: couponCode, totalAmount: totalPrice },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            toast.success("Address added successfully!");
-            setShowAddForm(false);
-            setNewAddress({
-                fullName: "",
-                phone: "",
-                street: "",
-                city: "",
-                state: "",
-                postalCode: "",
-                country: "India",
-            });
-            const res = await axios.get("http://localhost:3005/api/user/profile", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setAddresses(res.data.addresses || []);
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to add address");
+            const { discountAmount, message } = res.data;
+            setDiscount(discountAmount);
+            toast.success(message || "Coupon applied successfully!");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Invalid or expired coupon");
+            setDiscount(0);
         }
     };
-
 
     const handleCheckout = async () => {
         if (!selectedAddress) return toast.error("Please select an address");
         if (!paymentMethod) return toast.error("Please select a payment method");
 
         try {
-            // --- Call backend checkout endpoint ---
             const res = await axios.post(
-                "http://localhost:3005/api/cart/checkout",
+                `${API_URL}/api/cart/checkout`,
                 {
                     address: selectedAddress,
                     paymentType: paymentMethod,
+                    discount,
+                    shippingCharge,
+                    finalAmount,
                     items: cartItems.map((item: CartItem) => ({
                         productId: item.product._id,
                         variantId: item.variant._id,
@@ -143,20 +123,19 @@ export const Checkout: React.FC = () => {
             if (paymentMethod === "COD") {
                 toast.success("COD Order placed successfully!");
                 navigate("/success");
-            } else if (paymentMethod === "RAZORPAY") {
+            } else {
                 const { razorpayOrder, orderId } = res.data;
-
                 const options = {
-                    key: razorpayKey, // add your Razorpay key in .env
+                    key: razorpayKey,
                     amount: razorpayOrder.amount,
                     currency: razorpayOrder.currency,
-                    name: "My Store",
+                    name: "FitFusion Store",
                     description: "Order Payment",
                     order_id: razorpayOrder.id,
                     handler: async (response: any) => {
                         try {
                             await axios.post(
-                                "http://localhost:3005/api/cart/payment/verify",
+                                `${API_URL}/api/cart/payment/verify`,
                                 {
                                     razorpay_order_id: response.razorpay_order_id,
                                     razorpay_payment_id: response.razorpay_payment_id,
@@ -167,211 +146,265 @@ export const Checkout: React.FC = () => {
                             );
                             toast.success("Payment successful! Order placed.");
                             navigate("/success");
-                        } catch (err) {
-                            console.error(err);
+                        } catch {
                             toast.error("Payment verification failed!");
                         }
                     },
-                    prefill: {
-                        name: "",
-                        email: "",
-                        contact:
-                            addresses.find((a) => a._id === selectedAddress)?.phone || "",
-                    },
                     theme: { color: "#f59e0b" },
                 };
-
                 const rzp = new (window as any).Razorpay(options);
                 rzp.open();
             }
         } catch (err: any) {
-            console.error(err);
             toast.error(err.response?.data?.message || "Checkout failed");
         }
     };
 
-    if (!cartItems || cartItems.length === 0) {
-        return (
-            <div className="flex items-center justify-center min-h-screen text-gray-600">
-                No items in cart.
-            </div>
-        );
-    }
+    // 🏠 Add Address Handler
+    const handleAddAddress = async () => {
+        const { fullName, phone, street, city, state, postalCode } = newAddress;
+
+        if (!fullName || !phone || !street || !city || !state || !postalCode)
+            return toast.error("All fields are required");
+        if (!/^\d{10}$/.test(phone))
+            return toast.error("Phone number must be exactly 10 digits");
+
+        try {
+            await axios.post(`${API_URL}/api/user/addresses`, newAddress, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            toast.success("Address added successfully!");
+            setShowAddForm(false);
+            setNewAddress({
+                fullName: "",
+                phone: "",
+                street: "",
+                city: "",
+                state: "",
+                postalCode: "",
+                country: "India",
+            });
+            const res = await axios.get(`${API_URL}/api/user/profile`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setAddresses(res.data.addresses || []);
+        } catch {
+            toast.error("Failed to add address");
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 py-10">
             <ToastContainer position="top-right" autoClose={2000} />
-            <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-xl p-6">
-                <h2 className="text-2xl font-semibold text-center mb-6 text-amber-600">
+            <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-xl p-8">
+                <h2 className="text-3xl font-bold text-center text-amber-600 mb-8">
                     Checkout
                 </h2>
 
-                {/* Address Section */}
-                <h3 className="text-lg font-semibold mb-3 text-gray-800">
-                    Select Delivery Address
-                </h3>
-                {addresses.length > 0 ? (
-                    <div className="space-y-3 mb-4">
-                        {addresses.map((addr) => (
-                            <label
-                                key={addr._id}
-                                className={`block border p-3 rounded-lg cursor-pointer ${selectedAddress === addr._id
-                                    ? "border-amber-500 bg-amber-50"
-                                    : "border-gray-300"
-                                    }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="address"
-                                    value={addr._id}
-                                    onChange={() => setSelectedAddress(addr._id!)}
-                                    checked={selectedAddress === addr._id}
-                                    className="mr-2"
-                                />
-                                <span className="font-medium">{addr.fullName}</span> —{" "}
-                                {addr.phone}
-                                <p className="text-sm text-gray-600">
-                                    {addr.street}, {addr.city}, {addr.state} - {addr.postalCode}
-                                </p>
-                            </label>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-500 mb-4">No addresses found. Please add one.</p>
-                )}
-
-                {!showAddForm ? (
-                    <button
-                        onClick={() => setShowAddForm(true)}
-                        className="text-amber-600 font-medium mb-6"
-                    >
-                        + Add New Address
-                    </button>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                        <input
-                            placeholder="Full Name"
-                            value={newAddress.fullName}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, fullName: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
-                        <input
-                            placeholder="Phone"
-                            value={newAddress.phone}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, phone: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
-                        <input
-                            placeholder="Street"
-                            value={newAddress.street}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, street: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
-                        <input
-                            placeholder="City"
-                            value={newAddress.city}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, city: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
-                        <input
-                            placeholder="State"
-                            value={newAddress.state}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, state: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
-                        <input
-                            placeholder="Postal Code"
-                            value={newAddress.postalCode}
-                            onChange={(e) =>
-                                setNewAddress({ ...newAddress, postalCode: e.target.value })
-                            }
-                            className="border px-3 py-2 rounded"
-                        />
+                {/* 🏠 Address Section */}
+                <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            Delivery Address
+                        </h3>
                         <button
-                            onClick={handleAddAddress}
-                            className="col-span-2 bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                            onClick={() => setShowAddForm(!showAddForm)}
+                            className="text-amber-600 hover:text-amber-700 font-medium"
                         >
-                            Save Address
+                            {showAddForm ? "Cancel" : "+ Add New"}
                         </button>
                     </div>
-                )}
 
-                {/* Payment Method */}
-                <h3 className="text-lg font-semibold mb-3 text-gray-800">
-                    Payment Method
-                </h3>
-                <div className="flex gap-4 mb-6">
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name="payment"
-                            value="COD"
-                            checked={paymentMethod === "COD"}
-                            onChange={() => setPaymentMethod("COD")}
-                        />
-                        Cash on Delivery
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name="payment"
-                            value="RAZORPAY"
-                            checked={paymentMethod === "RAZORPAY"}
-                            onChange={() => setPaymentMethod("RAZORPAY")}
-                        />
-                        Razorpay
-                    </label>
+                    {showAddForm && (
+                        <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg mb-4 bg-gray-50">
+                            <input
+                                type="text"
+                                placeholder="Full Name"
+                                value={newAddress.fullName}
+                                onChange={(e) =>
+                                    setNewAddress({ ...newAddress, fullName: e.target.value })
+                                }
+                                className="border p-2 rounded"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Phone (10 digits)"
+                                maxLength={10}
+                                value={newAddress.phone}
+                                onChange={(e) =>
+                                    setNewAddress({
+                                        ...newAddress,
+                                        phone: e.target.value.replace(/\D/g, ""),
+                                    })
+                                }
+                                className="border p-2 rounded"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Street"
+                                value={newAddress.street}
+                                onChange={(e) =>
+                                    setNewAddress({ ...newAddress, street: e.target.value })
+                                }
+                                className="border p-2 rounded col-span-2"
+                            />
+                            <input
+                                type="text"
+                                placeholder="City"
+                                value={newAddress.city}
+                                onChange={(e) =>
+                                    setNewAddress({ ...newAddress, city: e.target.value })
+                                }
+                                className="border p-2 rounded"
+                            />
+                            <input
+                                type="text"
+                                placeholder="State"
+                                value={newAddress.state}
+                                onChange={(e) =>
+                                    setNewAddress({ ...newAddress, state: e.target.value })
+                                }
+                                className="border p-2 rounded"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Postal Code"
+                                value={newAddress.postalCode}
+                                onChange={(e) =>
+                                    setNewAddress({ ...newAddress, postalCode: e.target.value })
+                                }
+                                className="border p-2 rounded"
+                            />
+                            <button
+                                onClick={handleAddAddress}
+                                className="bg-amber-500 text-white py-2 rounded-lg hover:bg-amber-600 transition col-span-2"
+                            >
+                                Save Address
+                            </button>
+                        </div>
+                    )}
+
+                    {addresses.length > 0 ? (
+                        <div className="space-y-3 mb-6">
+                            {addresses.map((addr) => (
+                                <label
+                                    key={addr._id}
+                                    className={`block border p-3 rounded-lg cursor-pointer transition ${selectedAddress === addr._id
+                                        ? "border-amber-500 bg-amber-50"
+                                        : "border-gray-300 hover:border-amber-300"
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="address"
+                                        value={addr._id}
+                                        onChange={() => setSelectedAddress(addr._id!)}
+                                        checked={selectedAddress === addr._id}
+                                        className="mr-2"
+                                    />
+                                    <span className="font-medium">{addr.fullName}</span> — {addr.phone}
+                                    <p className="text-sm text-gray-600">
+                                        {addr.street}, {addr.city}, {addr.state} - {addr.postalCode}
+                                    </p>
+                                </label>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 mb-4">
+                            No addresses found. Please add one.
+                        </p>
+                    )}
                 </div>
 
-                {/* Cart Summary */}
-                <div className="border-t pt-4">
+                {/* 💳 Payment Method */}
+                <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                        Order Summary
+                        Payment Method
                     </h3>
+                    <div className="flex gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="payment"
+                                value="COD"
+                                checked={paymentMethod === "COD"}
+                                onChange={() => setPaymentMethod("COD")}
+                            />
+                            Cash on Delivery
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="payment"
+                                value="RAZORPAY"
+                                checked={paymentMethod === "RAZORPAY"}
+                                onChange={() => setPaymentMethod("RAZORPAY")}
+                            />
+                            Razorpay
+                        </label>
+                    </div>
+                </div>
+
+                {/* 🎟️ Coupon Section + Order Summary */}
+                <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            Order Summary
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="text"
+                                placeholder="Coupon"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                className="border px-3 py-1 rounded w-32"
+                            />
+                            <button
+                                onClick={handleApplyCoupon}
+                                className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
+                            >
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+
                     {cartItems.map((item: CartItem) => (
                         <div
                             key={item.variant._id}
                             className="flex justify-between border-b py-2 text-sm"
                         >
-                            <div className="flex flex-col">
-                                <span className="text-base font-semibold text-gray-800">
-                                    {item.product.name}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                    Weight: <span className="font-medium">{item.variant.weight}</span>
-                                </span>
-                                <span className="text-sm text-gray-600">
-                                    Quantity: <span className="font-semibold text-amber-600">{item.quantity}</span>
-                                </span>
-                            </div>
-
-
+                            <span className="font-medium text-gray-800">
+                                {item.product.name} ({item.variant.weight}) × {item.quantity}
+                            </span>
                             <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
-                    <div className="flex justify-between mt-3 font-semibold text-lg">
-                        <span>Sub Total:</span>
+
+                    <div className="flex justify-between mt-3">
+                        <span>Subtotal:</span>
                         <span>₹{totalPrice.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between mt-3 font-semibold text-lg">
-                        <span>Total:</span>
-                        <span>₹{totalPrice.toFixed(2)}</span>
+                    {discount > 0 && (
+                        <div className="flex justify-between text-green-600 font-medium mt-2">
+                            <span>Discount:</span>
+                            <span>- ₹{discount.toFixed(2)}</span>
+                        </div>
+                    )}
+                    {shippingCharge > 0 && (
+                        <div className="flex justify-between text-blue-600 mt-2">
+                            <span>Shipping:</span>
+                            <span>₹{shippingCharge.toFixed(2)}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between font-semibold text-lg mt-4 border-t pt-3">
+                        <span>Total Payable:</span>
+                        <span>₹{finalAmount.toFixed(2)}</span>
                     </div>
                 </div>
 
                 <button
                     onClick={handleCheckout}
-                    className="w-full mt-6 bg-amber-500 text-white py-3 rounded-xl hover:bg-amber-600 transition"
+                    className="w-full mt-8 bg-amber-500 text-white py-3 rounded-xl hover:bg-amber-600 transition text-lg font-semibold"
                 >
                     Place Order
                 </button>
