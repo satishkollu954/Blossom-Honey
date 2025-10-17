@@ -5,7 +5,7 @@ const Product = require("../Model/Product");
 
 // ---------------------- USER CONTROLLERS ---------------------- //
 
-// ✅ Get all orders of logged-in user
+// ✅ Get all orders of logged-in user //
 const getUserOrders = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 

@@ -114,17 +114,12 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   // Check max uses
   if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)
     throw new Error("Coupon usage limit reached");
-  console.log("userid", userId);
-  console.log(
-    "===",
-    coupon.usedBy.some((u) => u.toString() === userId.toString())
-  );
-  // Check once per user
+
+  // ✅ FIX: Compare userId correctly
   if (
     coupon.oncePerUser &&
     coupon.usedBy.some((u) => u.toString() === userId.toString())
   ) {
-    console.log("userid", userId);
     throw new Error("You have already used this coupon");
   }
 
@@ -148,10 +143,18 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
 
   if (discountAmount > cart.totalAmount) discountAmount = cart.totalAmount;
 
+  // ✅ Apply coupon to cart
   cart.coupon = coupon._id;
   cart.discountAmount = discountAmount;
   cart.totalAmount = cart.totalAmount - discountAmount;
   await cart.save();
+
+  // ✅ Update coupon usage tracking
+  coupon.usedCount += 1;
+  if (coupon.oncePerUser) {
+    coupon.usedBy.push(userId);
+  }
+  await coupon.save();
 
   res.json({
     message: "Coupon applied successfully",
