@@ -375,7 +375,11 @@ module.exports = {
   getCart,
   updateCartItem,
   removeCartItem,
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> a3d23f74861d6af8ddf59773036ed4a1cdaa2142
   syncGuestCart,
   checkout,
   verifyOnlinePayment,
