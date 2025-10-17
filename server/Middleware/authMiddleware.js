@@ -7,6 +7,7 @@ const User = require("../Model/User"); // Assuming you have a User model here
  * Checks for a JWT in cookies or the Authorization header.
  */
 const protect = asyncHandler(async (req, res, next) => {
+  console.log(req.cookies.token);
   let token;
 
   // 1. Check for token in cookies (preferred for MERN/HTTP-only setup)
@@ -18,6 +19,7 @@ const protect = asyncHandler(async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
+    console.log(req.headers.authorization.split(" ")[1]);
     token = req.headers.authorization.split(" ")[1];
   }
 
@@ -28,7 +30,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
       // Find the user by ID from the token payload and exclude the password
       req.user = await User.findById(decoded.userId).select("-password");
-
+      console.log(req.user.role);
       if (!req.user) {
         res.status(401);
         throw new Error("Not authorized, user not found");
@@ -51,6 +53,7 @@ const protect = asyncHandler(async (req, res, next) => {
  */
 const admin = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
+    console.log("===", req.user);
     next();
   } else {
     res.status(403); // Forbidden
@@ -63,6 +66,7 @@ const admin = (req, res, next) => {
  */
 const seller = (req, res, next) => {
   if (req.user && (req.user.role === "seller" || req.user.role === "admin")) {
+    console.log("===", req.user.role);
     next();
   } else {
     res.status(403); // Forbidden

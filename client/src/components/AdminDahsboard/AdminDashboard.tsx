@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState("upload");
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [cookie, , removeCookie] = useCookies(["token", "role"]);
+    const [, , removeCookie] = useCookies(["token", "role"]);
 
     // Detect screen resize (to toggle mobile mode)
     useEffect(() => {
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                         onClick={() => handleMenuClick("coupon")}
-                        className={`flex items-center w-full px-4 py-2 text-left hover:bg-amber-100 transition ${activeSection === "users"
+                        className={`flex items-center w-full px-4 py-2 text-left hover:bg-amber-100 transition ${activeSection === "coupon"
                             ? "bg-amber-100 text-amber-600 font-semibold"
                             : "text-gray-700"
                             }`}

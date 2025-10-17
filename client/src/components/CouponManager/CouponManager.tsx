@@ -12,10 +12,10 @@ interface Coupon {
     minPurchase: number;
     expiryDate: string;
     isActive: boolean;
-    maxUses: number;
-    usedCount: number;
-    oncePerUser: boolean;
-    applicableCategories: string;
+    maxUses?: number;
+    usedCount?: number;
+    oncePerUser?: boolean;
+    applicableCategories?: string[];
 }
 
 export default function CouponManager() {
@@ -35,18 +35,13 @@ export default function CouponManager() {
         maxUses: 0,
         usedCount: 0,
         oncePerUser: false,
-        applicableCategories: "",
+        applicableCategories: [],
     });
 
-    const API_URL = "http://localhost:3005/api/coupons";
-
-    useEffect(() => {
-        fetchCoupons();
-    }, []);
-
     const fetchCoupons = async () => {
+        console.log(cookies.token);
         try {
-            const res = await axios.get(API_URL, {
+            const res = await axios.get(`http://localhost:3005/api/coupons`, {
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
             setCoupons(res.data);
@@ -55,6 +50,10 @@ export default function CouponManager() {
             toast.error("Failed to fetch coupons");
         }
     };
+
+    useEffect(() => {
+        fetchCoupons();
+    }, []);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -73,27 +72,22 @@ export default function CouponManager() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!formData.code.trim()) return toast.error("Coupon code is required");
         if (!formData.discountValue || formData.discountValue <= 0)
             return toast.error("Discount value must be greater than 0");
         if (!formData.expiryDate) return toast.error("Expiry date is required");
 
-        // ✅ Prevent past expiry date
-        const today = new Date();
-        const expiry = new Date(formData.expiryDate);
-        if (expiry < new Date(today.toDateString()))
-            return toast.error("Expiry date cannot be before today");
-
         setLoading(true);
         try {
             if (editingCoupon) {
-                await axios.put(`${API_URL}/${editingCoupon._id}`, formData, {
-                    headers: { Authorization: `Bearer ${cookies.token}` },
-                });
+                await axios.put(
+                    `http://localhost:3005/api/coupons/${editingCoupon._id}`,
+                    formData,
+                    { headers: { Authorization: `Bearer ${cookies.token}` } }
+                );
                 toast.success("Coupon updated successfully!");
             } else {
-                await axios.post(API_URL, formData, {
+                await axios.post(`http://localhost:3005/api/coupons`, formData, {
                     headers: { Authorization: `Bearer ${cookies.token}` },
                 });
                 toast.success("Coupon created successfully!");
@@ -114,11 +108,6 @@ export default function CouponManager() {
         setFormData({
             ...coupon,
             expiryDate: coupon.expiryDate.split("T")[0],
-            applicableCategories: Array.isArray(
-                (coupon as any).applicableCategories
-            )
-                ? (coupon as any).applicableCategories.join(", ")
-                : (coupon as any).applicableCategories || "",
         });
         setShowModal(true);
     };
@@ -126,7 +115,7 @@ export default function CouponManager() {
     const handleDelete = async (id: string) => {
         if (!window.confirm("Are you sure you want to delete this coupon?")) return;
         try {
-            await axios.delete(`${API_URL}/${id}`, {
+            await axios.delete(`http://localhost:3005/api/coupons/${id}`, {
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
             toast.success("Coupon deleted successfully!");
@@ -139,7 +128,8 @@ export default function CouponManager() {
 
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+            {/* Header + Add Button */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800 text-center sm:text-left">
                     🎟 Coupon Management
                 </h1>
@@ -155,7 +145,7 @@ export default function CouponManager() {
                             maxUses: 0,
                             usedCount: 0,
                             oncePerUser: false,
-                            applicableCategories: "",
+                            applicableCategories: [],
                         });
                         setEditingCoupon(null);
                         setShowModal(true);
@@ -167,8 +157,8 @@ export default function CouponManager() {
             </div>
 
             {/* Coupon Table */}
-            <div className="overflow-x-auto bg-white shadow-lg rounded-xl border border-gray-200">
-                <table className="min-w-full text-sm text-gray-700">
+            <div className="overflow-x-auto w-full bg-white shadow-lg rounded-xl border border-gray-200">
+                <table className="min-w-full text-sm text-gray-700 w-full table-fixed">
                     <thead className="bg-amber-100 text-gray-800">
                         <tr>
                             <th className="px-3 sm:px-4 py-3 text-left">Code</th>
@@ -183,10 +173,7 @@ export default function CouponManager() {
                     <tbody>
                         {coupons.length > 0 ? (
                             coupons.map((coupon) => (
-                                <tr
-                                    key={coupon._id}
-                                    className="border-t hover:bg-gray-50 transition"
-                                >
+                                <tr key={coupon._id} className="border-t hover:bg-gray-50 transition">
                                     <td className="px-3 sm:px-4 py-3 font-semibold">{coupon.code}</td>
                                     <td className="px-3 sm:px-4 py-3 capitalize">{coupon.discountType}</td>
                                     <td className="px-3 sm:px-4 py-3">
@@ -226,10 +213,7 @@ export default function CouponManager() {
                             ))
                         ) : (
                             <tr>
-                                <td
-                                    colSpan={7}
-                                    className="text-center text-gray-500 py-6 italic"
-                                >
+                                <td colSpan={7} className="text-center text-gray-500 py-6 italic">
                                     No coupons available
                                 </td>
                             </tr>
@@ -248,91 +232,44 @@ export default function CouponManager() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block font-medium mb-1 text-sm">Code</label>
-                                <input
-                                    type="text"
-                                    name="code"
-                                    value={formData.code}
-                                    onChange={handleChange}
-                                    className="w-full border rounded-lg px-3 py-2"
-                                    placeholder="e.g. NEWYEAR2025"
-                                    required
-                                />
+                                <input type="text" name="code" value={formData.code} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" placeholder="e.g. NEWYEAR2025" required />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block font-medium mb-1 text-sm">Discount Type</label>
-                                    <select
-                                        name="discountType"
-                                        value={formData.discountType}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg px-3 py-2"
-                                    >
+                                    <select name="discountType" value={formData.discountType} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
                                         <option value="percentage">Percentage</option>
                                         <option value="flat">Flat</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block font-medium mb-1 text-sm">Discount Value</label>
-                                    <input
-                                        type="number"
-                                        name="discountValue"
-                                        value={formData.discountValue}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg px-3 py-2"
-                                        required
-                                    />
+                                    <input type="number" name="discountValue" value={formData.discountValue} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" required />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block font-medium mb-1 text-sm">Min Purchase</label>
-                                    <input
-                                        type="number"
-                                        name="minPurchase"
-                                        value={formData.minPurchase}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg px-3 py-2"
-                                    />
+                                    <input type="number" name="minPurchase" value={formData.minPurchase} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" />
                                 </div>
                                 <div>
                                     <label className="block font-medium mb-1 text-sm">Expiry Date</label>
-                                    <input
-                                        type="date"
-                                        name="expiryDate"
-                                        value={formData.expiryDate}
-                                        onChange={handleChange}
-                                        min={new Date().toISOString().split("T")[0]}
-                                        required
-                                        className="w-full border rounded-lg px-3 py-2"
-                                    />
+                                    <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} min={new Date().toISOString().split("T")[0]} required className="w-full border rounded-lg px-3 py-2" />
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    name="isActive"
-                                    checked={formData.isActive}
-                                    onChange={handleChange}
-                                />
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
                                 <label className="text-sm">Active</label>
                             </div>
 
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                                >
+                            <div className="flex flex-col sm:flex-row justify-end gap-3">
+                                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg w-full sm:w-auto">
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"
-                                >
+                                <button type="submit" disabled={loading} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg w-full sm:w-auto">
                                     {loading ? "Saving..." : editingCoupon ? "Update" : "Create"}
                                 </button>
                             </div>
@@ -341,6 +278,5 @@ export default function CouponManager() {
                 </div>
             )}
         </div>
-
     );
 }

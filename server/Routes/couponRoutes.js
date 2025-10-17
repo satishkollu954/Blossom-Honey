@@ -9,11 +9,7 @@ const {
   applyCouponToCart,
   removeCouponFromCart,
 } = require("../Controller/couponController");
-<<<<<<< HEAD
-const { protect, adminAuth } = require("../Middleware/authMiddleware");
-=======
 const { protect, admin } = require("../Middleware/authMiddleware");
->>>>>>> a3d23f74861d6af8ddf59773036ed4a1cdaa2142
 
 // 🔹 Admin routes
 router.post("/", admin, createCoupon);
