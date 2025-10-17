@@ -165,7 +165,7 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       statusCode: 400,
-      message: "Coupon not applicable for items in your cart",
+      message: "Coupon not applicable for selected items ",
     });
   }
 
@@ -186,10 +186,10 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   await cart.save();
 
   // ✅ Update coupon usage tracking
-  coupon.usedCount += 1;
-  if (coupon.oncePerUser) {
-    coupon.usedBy.push(userId);
-  }
+  // coupon.usedCount += 1;
+  // if (coupon.oncePerUser) {
+  //   coupon.usedBy.push(userId);
+  // }
   await coupon.save();
 
   // ✅ Success response

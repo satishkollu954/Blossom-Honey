@@ -1,3 +1,4 @@
+//server/Controller/cartController.js
 const asyncHandler = require("express-async-handler");
 const Cart = require("../Model/Cart");
 const Product = require("../Model/Product");
@@ -7,6 +8,7 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { createShipmentWithShiprocket } = require("../utils/shiprocket");
 const User = require("../Model/User");
+const { markCouponUsed } = require("./couponController");
 
 // --- Add to Cart ---
 const addToCart = asyncHandler(async (req, res) => {
@@ -229,6 +231,7 @@ const checkout = asyncHandler(async (req, res) => {
   });
 
   await order.save();
+  await markCouponUsed(userId, cart.coupon);
 
   // Decrease stock
   for (const item of cart.items) {
@@ -346,6 +349,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   order.paymentStatus = "Paid";
   order.status = "Placed"; // can keep processing/shipped flow
   await order.save();
+  await markCouponUsed(req.user._id, cart.coupon);
 
   // --- Calculate total weight & max dimensions ---
   let totalWeight = 0;
