@@ -79,6 +79,7 @@ export const Checkout: React.FC = () => {
         setFinalAmount(totalPrice - discount + shipping);
     }, [totalPrice, discount]);
 
+
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return toast.error("Enter a coupon code");
         try {
@@ -91,9 +92,16 @@ export const Checkout: React.FC = () => {
             setDiscount(discountAmount);
             toast.success(message || "Coupon applied successfully!");
         } catch (err: any) {
-            toast.error(err.response?.data?.message || "Invalid or expired coupon");
+            // Safely extract error message
+            const message =
+                err.response?.data?.message ||
+                err.message?.split("\n")[0] || // remove stack trace part
+                "Invalid or expired coupon";
+
+            toast.error(message);
             setDiscount(0);
         }
+
     };
 
     const handleCheckout = async () => {
@@ -348,25 +356,43 @@ export const Checkout: React.FC = () => {
                 {/* 🎟️ Coupon Section + Order Summary */}
                 <div className="border-t pt-4">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            Order Summary
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Coupon"
-                                value={couponCode}
-                                onChange={(e) => setCouponCode(e.target.value)}
-                                className="border px-3 py-1 rounded w-32"
-                            />
-                            <button
-                                onClick={handleApplyCoupon}
-                                className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
-                            >
-                                Apply
-                            </button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800">Order Summary</h3>
+
+                        {!discount ? (
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="text"
+                                    placeholder="Enter coupon"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    className="border px-3 py-1 rounded w-32"
+                                />
+                                <button
+                                    onClick={handleApplyCoupon}
+                                    className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 bg-green-50 border border-green-400 px-3 py-1 rounded-lg">
+                                <span className="text-green-700 font-medium">
+                                    Coupon “{couponCode}” applied ✓
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        setCouponCode("");
+                                        setDiscount(0);
+                                        toast.info("Coupon removed");
+                                    }}
+                                    className="text-red-600 hover:text-red-700 text-sm"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        )}
                     </div>
+
 
                     {cartItems.map((item: CartItem) => (
                         <div
