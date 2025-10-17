@@ -375,7 +375,7 @@ module.exports = {
   getCart,
   updateCartItem,
   removeCartItem,
-  applyCoupon,
+
   syncGuestCart,
   checkout,
   verifyOnlinePayment,
