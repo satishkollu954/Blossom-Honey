@@ -13,7 +13,19 @@ const getUserOrders = asyncHandler(async (req, res) => {
     .populate("products.product", "name category images variants")
     .sort({ createdAt: -1 });
 
-  res.json(orders);
+  // Transform data so that frontend gets images directly
+  const formattedOrders = orders.map((order) => ({
+    ...order._doc,
+    products: order.products.map((item) => ({
+      ...item._doc,
+      name: item.product?.name || "Unnamed Product",
+      images: item.product?.images?.length
+        ? item.product.images
+        : item.product?.variants?.[0]?.images || [],
+    })),
+  }));
+
+  res.json(formattedOrders);
 });
 
 // ✅ Get single order of user
