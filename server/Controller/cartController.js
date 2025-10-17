@@ -130,39 +130,6 @@ const removeCartItem = asyncHandler(async (req, res) => {
   res.json({ message: "Item removed", cart });
 });
 
-// --- Apply Coupon ---
-const applyCoupon = asyncHandler(async (req, res) => {
-  const { code } = req.body;
-  const cart = await Cart.findOne({ user: req.user._id }).populate(
-    "items.product"
-  );
-  if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
-
-  const coupon = await Coupon.findOne({
-    code: code.toUpperCase(),
-    isActive: true,
-  });
-  if (!coupon) throw new Error("Invalid coupon");
-  if (coupon.expiryDate && coupon.expiryDate < new Date())
-    throw new Error("Coupon expired");
-
-  const subtotal = cart.items.reduce((sum, item) => sum + item.subtotal, 0);
-  if (subtotal < coupon.minPurchase)
-    throw new Error(`Minimum purchase ₹${coupon.minPurchase} required`);
-
-  let discount =
-    coupon.discountType === "percentage"
-      ? Math.round((subtotal * coupon.discountValue) / 100)
-      : coupon.discountValue;
-
-  cart.coupon = coupon._id;
-  cart.discountAmount = discount;
-  cart.totalAmount = subtotal - discount;
-  await cart.save();
-
-  res.json({ message: "Coupon applied", cart });
-});
-
 // --- Sync Guest Cart on Login ---
 const syncGuestCart = asyncHandler(async (req, res) => {
   const { guestCartItems } = req.body;
@@ -349,7 +316,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   console.log("Razorpay Order ID:", razorpay_order_id);
   console.log("Razorpay Payment ID:", razorpay_payment_id);
   console.log("Razorpay Signature:", razorpay_signature);
-  
+
   const cart = await Cart.findOne({ user: req.user._id });
   if (!cart) throw new Error("Cart not found");
 
