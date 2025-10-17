@@ -345,6 +345,14 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
     orderId,
   } = req.body;
 
+  console.log("Verifying payment for order:", orderId);
+  console.log("Razorpay Order ID:", razorpay_order_id);
+  console.log("Razorpay Payment ID:", razorpay_payment_id);
+  console.log("Razorpay Signature:", razorpay_signature);
+  
+  const cart = await Cart.findOne({ user: req.user._id });
+  if (!cart) throw new Error("Cart not found");
+
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
@@ -376,7 +384,7 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
   let totalWeight = 0;
   let dimensions = { length: 0, breadth: 0, height: 0 };
 
-  Cart.items.forEach((item) => {
+  cart.items.forEach((item) => {
     const variant = item.product.variants.id(item.variantId);
     const quantity = item.quantity;
 
