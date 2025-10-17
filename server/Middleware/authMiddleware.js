@@ -1,3 +1,4 @@
+//sever/Middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const User = require("../Model/User"); // Assuming you have a User model here

@@ -12,11 +12,11 @@ const {
 const { protect, admin } = require("../Middleware/authMiddleware");
 
 // 🔹 Admin routes
-router.post("/", admin, createCoupon);
-router.get("/", admin, getAllCoupons);
-router.get("/:id", admin, getCouponById);
-router.put("/:id", admin, updateCoupon);
-router.delete("/:id", admin, deleteCoupon);
+router.post("/", protect, admin, createCoupon);
+router.get("/", protect, admin, getAllCoupons);
+router.get("/:id", protect, admin, getCouponById);
+router.put("/:id", protect, admin, updateCoupon);
+router.delete("/:id", protect, admin, deleteCoupon);
 
 // 🔹 User routes
 router.post("/apply", protect, applyCouponToCart);
