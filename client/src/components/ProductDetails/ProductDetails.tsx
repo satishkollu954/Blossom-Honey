@@ -139,7 +139,7 @@ const ProductDetails: React.FC = () => {
 
     return (
         <div className="container mx-auto px-6 py-10 flex flex-col lg:flex-row gap-10">
-            <ToastContainer position="top-center" autoClose={2000} />
+            <ToastContainer position="top-center" autoClose={1500} />
 
             {/* LEFT: Image Carousel */}
             <div className="lg:w-1/2 flex flex-col items-center relative">
