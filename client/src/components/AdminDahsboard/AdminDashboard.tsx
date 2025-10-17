@@ -12,6 +12,7 @@ import UploadProduct from "../uploadproducts/UploadProducts";
 import ViewProducts from "../viewproducts/ViewProducts";
 import { useCookies } from "react-cookie";
 import UsersList from "../AllUsers/AllUsers";
+import CouponManager from "../CouponManager/CouponManager";
 
 export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState("upload");
@@ -44,6 +45,8 @@ export default function AdminDashboard() {
                 return <ViewProducts />;
             case "users":
                 return <UsersList />;
+            case "coupon":
+                return <CouponManager />;
             case "orders":
                 return <div className="p-6">📑 View Orders Component Here</div>;
             default:
@@ -102,6 +105,16 @@ export default function AdminDashboard() {
                     >
                         <Users className="mr-3" size={18} />
                         View Users
+                    </button>
+                    <button
+                        onClick={() => handleMenuClick("coupon")}
+                        className={`flex items-center w-full px-4 py-2 text-left hover:bg-amber-100 transition ${activeSection === "users"
+                            ? "bg-amber-100 text-amber-600 font-semibold"
+                            : "text-gray-700"
+                            }`}
+                    >
+                        <Users className="mr-3" size={18} />
+                        Coupon Manage
                     </button>
 
                     <button

@@ -23,6 +23,7 @@ import { MyOrders } from "./components/MyOrders/MyOrders";
 import Cart from "./components/Cart/Cart";
 import { Checkout } from "./components/checkout/Checkout";
 import SuccessPage from "./components/successpage/successpage";
+import CouponManager from "./components/CouponManager/CouponManager";
 
 
 
@@ -56,6 +57,14 @@ function App() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coupon"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <CouponManager />
               </ProtectedRoute>
             }
           />

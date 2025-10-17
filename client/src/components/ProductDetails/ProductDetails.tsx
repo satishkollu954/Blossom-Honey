@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
@@ -34,8 +34,12 @@ const ProductDetails: React.FC = () => {
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
     const [imageIndex, setImageIndex] = useState(0);
     const [cookies] = useCookies(["token", "role"]);
+    const location = useLocation();
     const { setCartCount } = useCart();
     const [isInCart, setIsInCart] = useState(false); // ✅ new state
+    const isAuthenticated = cookies.token;
+
+    const navigate = useNavigate();
 
     // ✅ Fetch product details
     useEffect(() => {
@@ -96,12 +100,17 @@ const ProductDetails: React.FC = () => {
         setImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
     };
 
+    const handleRedirectIfNotLoggedIn = () => {
+        navigate("/login", { state: { from: location.pathname } });
+    };
+
     // ✅ Add to Cart Function (with badge + disable)
     async function handleCartClick(
         productId: string,
         variantId: string,
         quantity: number
     ) {
+        if (!isAuthenticated) return handleRedirectIfNotLoggedIn();
         try {
             const token = cookies.token;
             const res = await axios.post(
