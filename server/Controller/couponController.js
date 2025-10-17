@@ -96,31 +96,63 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   const { code } = req.body;
 
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
-  if (!cart) throw new Error("Cart not found");
+  if (!cart) {
+    return res.status(404).json({
+      success: false,
+      statusCode: 404,
+      message: "Cart not found",
+    });
+  }
 
   const coupon = await Coupon.findOne({
     code: code.toUpperCase(),
     isActive: true,
   });
-  if (!coupon) throw new Error("Invalid or expired coupon");
+  if (!coupon) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: "Invalid or expired coupon",
+    });
+  }
 
   // Check expiry
-  if (new Date() > coupon.expiryDate) throw new Error("Coupon expired");
+  if (new Date() > coupon.expiryDate) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: "Coupon expired",
+    });
+  }
 
   // Check min purchase
-  if (cart.totalAmount < coupon.minPurchase)
-    throw new Error(`Minimum purchase of ₹${coupon.minPurchase} required`);
+  if (cart.totalAmount < coupon.minPurchase) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: `Minimum purchase of ₹${coupon.minPurchase} required`,
+    });
+  }
 
   // Check max uses
-  if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)
-    throw new Error("Coupon usage limit reached");
+  if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: "Coupon usage limit reached",
+    });
+  }
 
   // ✅ FIX: Compare userId correctly
   if (
     coupon.oncePerUser &&
     coupon.usedBy.some((u) => u.toString() === userId.toString())
   ) {
-    throw new Error("You have already used this coupon");
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: "You have already used this coupon",
+    });
   }
 
   // Optional: category-based restriction
@@ -130,7 +162,11 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
       coupon.applicableCategories.includes(i.product.category)
     )
   ) {
-    throw new Error("Coupon not applicable for items in your cart");
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: "Coupon not applicable for items in your cart",
+    });
   }
 
   // Calculate discount
@@ -156,7 +192,10 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   }
   await coupon.save();
 
-  res.json({
+  // ✅ Success response
+  return res.status(200).json({
+    success: true,
+    statusCode: 200,
     message: "Coupon applied successfully",
     discountAmount,
     finalAmount: cart.totalAmount,
