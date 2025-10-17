@@ -90,7 +90,7 @@ const deleteCoupon = asyncHandler(async (req, res) => {
 // 🔹 USER CONTROLLERS
 // -------------------------------
 
-// --- Apply Coupon to Cart ---
+// --- Apply Coupon to Cart -----
 const applyCouponToCart = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { code } = req.body;
