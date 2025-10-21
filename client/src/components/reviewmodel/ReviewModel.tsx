@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Star, X, Image as ImageIcon, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { useCookies } from "react-cookie";
 
 interface ReviewFormModalProps {
@@ -62,33 +62,34 @@ export const ReviewFormModal: React.FC<ReviewFormModalProps> = ({
         }
 
         setLoading(true);
-
-        // --- KEY CHANGE: Use FormData for files ---
         const formData = new FormData();
         formData.append("rating", rating.toString());
         formData.append("comment", comment);
-
-        images.forEach((file) => {
-            formData.append("reviewImages", file); // 'images' must match the field name your backend expects for files
-        });
-        // --- END KEY CHANGE ---
+        images.forEach((file) => formData.append("reviewImages", file));
 
         try {
             await axios.post(
-                `${API_URL}/api/products/${productId}/reviews`, // Your review submission endpoint
-                formData, // Send FormData object
+                `${API_URL}/api/products/${productId}/reviews`,
+                formData,
                 {
                     headers: {
                         Authorization: `Bearer ${cookies.token}`,
                         "Content-Type": "multipart/form-data",
-                        // Content-Type: multipart/form-data is automatically set by Axios when using FormData
                     },
                 }
             );
 
-            toast.success(`Review submitted successfully for ${productName}!`);
-            onReviewSubmitted(productId);
-            onClose();
+            toast.success(`Review submitted successfully for ${productName}!`, {
+                autoClose: 1500,
+                onClose: () => {
+                    // Reset and close after toast finishes
+                    setRating(0);
+                    setComment("");
+                    setImages([]);
+                    onReviewSubmitted(productId);
+                    onClose();
+                },
+            });
         } catch (error: any) {
             console.error("Review submission failed:", error);
             const errorMessage =
@@ -104,8 +105,10 @@ export const ReviewFormModal: React.FC<ReviewFormModalProps> = ({
         }
     };
 
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <ToastContainer position="top-center" closeOnClick autoClose={1000} />
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md m-4 p-6 relative max-h-[90vh] overflow-y-auto"> {/* Added max-height and overflow */}
                 <button
                     onClick={onClose}

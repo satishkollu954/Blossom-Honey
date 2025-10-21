@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Package, Truck, CreditCard, Calendar } from "lucide-react";
 import { useCookies } from "react-cookie";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { ReviewFormModal } from "../reviewmodel/ReviewModel"; // Import the new modal component
 
 // --- INTERFACES (UNCHANGED) ---
@@ -13,13 +13,14 @@ interface Variant {
 }
 
 interface OrderItem {
-    product: string; // The MongoDB ObjectId of the Product
+    product: string | { _id: string; name: string }; // 👈 Allow both string or populated object
     name: string;
     variant?: Variant;
     price: number;
     quantity: number;
     images: string[];
 }
+
 // ... (Delivery and ShippingAddress interfaces are unchanged) ...
 
 interface Delivery {
@@ -121,13 +122,14 @@ export function MyOrders() {
     // --- NEW REVIEW FUNCTIONS ---
 
     const openReviewModal = (productId: string, productName: string) => {
-        console.log("Opening review modal for product:", productId._id, productName);
+        console.log("Opening review modal for product:", productId, productName);
         setModalState({
             isOpen: true,
-            productId: productId._id,
+            productId,
             productName,
         });
     };
+
 
     const closeReviewModal = () => {
         setModalState({
@@ -167,6 +169,7 @@ export function MyOrders() {
 
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+            <ToastContainer position="top-center" autoClose={1500} />
             <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center sm:text-left">
                 My Orders
             </h1>
@@ -208,7 +211,10 @@ export function MyOrders() {
                             <div className="space-y-4 mb-4">
                                 {order.products.map((item, index) => {
                                     // Determine if the review button should be disabled
-                                    const hasReviewed = reviewedProducts[item.product];
+                                    const productId =
+                                        typeof item.product === "object" ? item.product._id : item.product;
+                                    const hasReviewed = reviewedProducts[productId];
+
 
                                     return (
                                         <div
@@ -246,7 +252,7 @@ export function MyOrders() {
                                             {isDelivered && (
                                                 <div className="sm:self-center sm:ml-auto">
                                                     <button
-                                                        onClick={() => openReviewModal(item.product, item.name)}
+                                                        onClick={() => openReviewModal(productId, item.name)}
                                                         disabled={hasReviewed}
                                                         className={`px-3 py-1 text-sm font-semibold rounded-lg transition ${hasReviewed
                                                             ? "bg-gray-200 text-gray-500 cursor-not-allowed"
@@ -255,6 +261,7 @@ export function MyOrders() {
                                                     >
                                                         {hasReviewed ? "Reviewed" : "Write a Review"}
                                                     </button>
+
                                                 </div>
                                             )}
                                         </div>
