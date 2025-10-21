@@ -1,5 +1,3 @@
-//server/Middlware/uploadMiddleware.js
-
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -13,18 +11,20 @@ cloudinary.config({
 });
 
 /**
- * Dynamic Cloudinary storage
- * @param {string} productId
- * @param {string} subFolder - "images" or "variants"
- * @param {"image"|"video"} resourceType
+ * Upload file to Cloudinary
+ * @param {Buffer} fileBuffer - The file buffer from multer
+ * @param {string} folder - Folder path in Cloudinary
+ * @param {string} filename - Name of the file
+ * @param {"image"|"video"} resourceType - Type of file (default "image")
+ * @returns {Promise<string>} - Returns secure URL
  */
-const createUploader = (fileBuffer, folder, filename) =>
+const createUploader = (fileBuffer, folder, filename, resourceType = "image") =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder, // folder path
-        public_id: filename, // file name
-        resource_type: "image", // ensure it’s treated as image
+        folder,
+        public_id: filename,
+        resource_type: resourceType,
         overwrite: true,
       },
       (error, result) => {
@@ -35,21 +35,21 @@ const createUploader = (fileBuffer, folder, filename) =>
     stream.end(fileBuffer);
   });
 
-// Helper to extract Cloudinary URLs
+/**
+ * Extract file URLs from multer files array
+ */
 const extractFileUrls = (files) => {
-  if (Array.isArray(files))
-    return files.map((f) => f.path || f.secure_url).filter(Boolean);
-  return [];
+  if (!files) return [];
+  return files.map((f) => f.path || f.secure_url).filter(Boolean);
 };
 
+/**
+ * Delete entire folder from Cloudinary
+ */
 const deleteCloudinaryFolder = async (folderPath) => {
   try {
-    // Delete all resources inside the folder
     await cloudinary.api.delete_resources_by_prefix(folderPath);
-
-    // Then delete the empty folder itself
     await cloudinary.api.delete_folder(folderPath);
-
     console.log(`✅ Cloudinary folder deleted: ${folderPath}`);
   } catch (error) {
     console.error(`❌ Error deleting Cloudinary folder ${folderPath}:`, error.message);
@@ -57,4 +57,3 @@ const deleteCloudinaryFolder = async (folderPath) => {
 };
 
 module.exports = { createUploader, extractFileUrls, deleteCloudinaryFolder };
-//module.exports = { createUploader, extractFileUrls };

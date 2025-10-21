@@ -20,10 +20,6 @@ function generateSKU(productName) {
 
 // CREATE PRODUCT WITH IMAGES
 const createProduct = asyncHandler(async (req, res) => {
- // console.log("Request body:", req.body);
- // console.log("Files:", req.files);
-
-  // --- Parse variants ---
   let variantsData = [];
   if (req.body.variants) {
     try {
@@ -37,7 +33,6 @@ const createProduct = asyncHandler(async (req, res) => {
     }
   }
 
-  // --- Parse tags ---
   let tagsData = [];
   if (req.body.tags) {
     tagsData =
@@ -49,13 +44,12 @@ const createProduct = asyncHandler(async (req, res) => {
   const sellerId = req.user._id;
   const isApproved = req.user.role === "admin";
 
-  // --- Generate SKU ---
+  // Generate SKU
   let sku;
   do {
     sku = generateSKU(req.body.name);
   } while (await Product.findOne({ sku }));
 
-  // --- Create product WITHOUT images first ---
   const product = new Product({
     name: req.body.name,
     description: req.body.description,
@@ -72,59 +66,23 @@ const createProduct = asyncHandler(async (req, res) => {
   const savedProduct = await product.save();
   const productId = savedProduct._id.toString();
 
-  // --- Upload PRODUCT images ---
-  const uploadedProductImages = [];
+  // --- Upload PRODUCT media (images/videos) ---
+  const uploadedProductMedia = [];
   if (req.files?.productImages) {
     for (let file of req.files.productImages) {
+      const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${productId}/images`,
-        file.originalname.split(".")[0] + "-" + Date.now()
+        `BlossomHoney/products/${productId}/${type}s`,
+        file.originalname.split(".")[0] + "-" + Date.now(),
+        type
       );
-      uploadedProductImages.push(url);
+      uploadedProductMedia.push(url);
     }
   }
 
-  // --- Upload VARIANT images (flattened) ---
-  if (req.files?.variantImages && req.files.variantImages.length > 0) {
-    let imageIndex = 0; // tracks position in flat array
-
-    for (let i = 0; i < variantsData.length; i++) {
-      const uploadedImages = [];
-
-      // Get number of images this variant has from frontend (optional)
-      const numImages = product.variants[i].images?.length || 0;
-
-      // Only upload if images exist
-      if (numImages > 0) {
-        for (let j = 0; j < numImages; j++) {
-          const file = req.files.variantImages[imageIndex];
-          if (!file) continue;
-
-          const url = await createUploader(
-            file.buffer,
-            `BlossomHoney/products/${productId}/variants/${i}`,
-            file.originalname.split(".")[0] + "-" + Date.now()
-          );
-          uploadedImages.push(url);
-          imageIndex++;
-        }
-      }
-
-      // Assign uploaded images (or empty array if none)
-      variantsData[i].images = uploadedImages;
-    }
-  } else {
-    // No variant images uploaded, set empty array for each variant
-    variantsData.forEach((v) => {
-      v.images = [];
-    });
-  }
-
-  // --- Save image URLs back to product ---
-  savedProduct.images = uploadedProductImages;
+  savedProduct.images = uploadedProductMedia; // store product media
   savedProduct.variants = variantsData;
-
   await savedProduct.save();
 
   res.status(201).json({
@@ -147,12 +105,12 @@ const getApprovedProducts = asyncHandler(async (req, res) => {
 });
 
 const getProductById = asyncHandler(async (req, res) => {
-//  console.log("Fetching product by ID:", req.params.id);
+  //  console.log("Fetching product by ID:", req.params.id);
   const product = await Product.findOne({
     _id: req.params.id,
     isApproved: true,
   });
- // console.log("Fetched  single product :", product);
+  // console.log("Fetched  single product :", product);
   if (product) {
     res.json(product);
   } else {
@@ -163,44 +121,74 @@ const getProductById = asyncHandler(async (req, res) => {
 
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
-  const reviewMedia = extractMediaUrls(req.files);
-
   const product = await Product.findById(req.params.id);
 
-  if (product) {
-    const alreadyReviewed = product.reviews.find(
-      (r) => r.user.toString() === req.user._id.toString()
-    );
+  if (!product) throw new Error("Product not found");
 
-    if (alreadyReviewed) {
-      res.status(400);
-      throw new Error("Product already reviewed by this user");
+  const alreadyReviewed = product.reviews.find(
+    (r) => r.user.toString() === req.user._id.toString()
+  );
+  if (alreadyReviewed) {
+    res.status(400).json({ message: "Product already reviewed by this user" });
+  }
+
+  const reviewIndex = product.reviews.length;
+
+  const reviewImages = [];
+  if (req.files?.reviewImages) {
+    for (const file of req.files.reviewImages) {
+      // Detect type: image or video
+      const type = file.mimetype.startsWith("video/") ? "video" : "image";
+      const url = await createUploader(
+        file.buffer,
+        `BlossomHoney/products/${product._id}/reviews/${type}s`,
+        file.originalname.split(".")[0] + "-" + Date.now(),
+        type
+      );
+      reviewImages.push(url);
     }
+  }
+  const username = await User.findById(req.user._id).name;
+  console.log("Username for review:", username);
+  const review = {
+    user: req.user._id,
+    username: username,
+    rating: Number(rating),
+    comment,
+    images: reviewImages, // store uploaded URLs
+  };
 
-    const review = {
-      user: req.user._id,
-      rating: Number(rating),
-      comment,
-      media: reviewMedia, // image/video URLs
-    };
+  product.reviews.push(review);
 
-    product.reviews.push(review);
+  // Update ratings
+  const totalRating = product.reviews.reduce(
+    (acc, item) => acc + item.rating,
+    0
+  );
+  product.ratings.count = product.reviews.length;
+  product.ratings.average = (totalRating / product.reviews.length).toFixed(1);
 
-    const numReviews = product.reviews.length;
-    const totalRating = product.reviews.reduce(
-      (acc, item) => item.rating + acc,
-      0
-    );
+  await product.save();
 
-    product.ratings.count = numReviews;
-    product.ratings.average = (totalRating / numReviews).toFixed(1);
+  res.status(201).json({ message: "Review added successfully", review });
+});
 
-    await product.save();
-    res.status(201).json({ message: "Review added successfully" });
-  } else {
+const getProductReviews = asyncHandler(async (req, res) => {
+  const productId = req.params.id;
+
+  const product = await Product.findById(productId)
+    .populate("reviews.user", "name email") // populate user info if needed
+    .select("reviews ratings");
+
+  if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+
+  res.status(200).json({
+    reviews: product.reviews,
+    ratings: product.ratings, // optional: send average/count
+  });
 });
 
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
@@ -216,15 +204,9 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  //console.log("request body", req.body);
-  //console.log("files", req.files);
-  //console.log("id =", req.params);
   const { id } = req.params;
   const product = await Product.findById(id);
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
-  }
+  if (!product) throw new Error("Product not found");
 
   // --- Update basic fields ---
   const updatableFields = [
@@ -239,14 +221,16 @@ const updateProduct = asyncHandler(async (req, res) => {
     if (req.body[field] !== undefined) product[field] = req.body[field];
   });
 
-  // --- Update product images ---
+  // --- Update product media ---
   if (req.files?.productImages) {
     const uploadedProductImages = [];
     for (let file of req.files.productImages) {
+      const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${id}/images`,
-        file.originalname.split(".")[0] + "-" + Date.now()
+        `BlossomHoney/products/${id}/${type}s`,
+        file.originalname.split(".")[0] + "-" + Date.now(),
+        type
       );
       uploadedProductImages.push(url);
     }
@@ -280,7 +264,7 @@ const updateVariants = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid variants data format");
   }
- // console.log("==>>  ", variantsData);
+  // console.log("==>>  ", variantsData);
   if (!Array.isArray(variantsData)) {
     res.status(400);
     throw new Error("Variants should be an array");
@@ -361,7 +345,7 @@ const deleteVariant = asyncHandler(async (req, res) => {
 
   // ✅ If no variants remain, delete the product entirely
   if (product.variants.length === 0) {
-   // console.log("No variants left, deleting product");
+    // console.log("No variants left, deleting product");
     await Product.findByIdAndDelete(productId);
 
     // Delete associated images from Cloudinary
@@ -472,4 +456,5 @@ module.exports = {
   updateVariants,
   deleteVariant,
   getProductsByCategory,
+  getProductReviews,
 };
