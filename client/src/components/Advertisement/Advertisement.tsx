@@ -27,6 +27,8 @@ export default function AdvertisementManager() {
 
   const positions = ["homepage", "sidebar", "banner", "popup", "footer"];
 
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
+
   // formData now separates existing images and new uploaded files
   const [formData, setFormData] = useState<
     Advertisement & { newFiles?: File[] }
@@ -45,7 +47,7 @@ export default function AdvertisementManager() {
   // Fetch all ads
   const fetchAds = async () => {
     try {
-      const res = await axios.get(`http://localhost:3005/api/advertisements`, {
+      const res = await axios.get(`${API_URL}/api/advertisements`, {
         headers: { Authorization: `Bearer ${cookies.token}` },
       });
       setAds(res.data);
@@ -74,13 +76,15 @@ export default function AdvertisementManager() {
 
   // Handle new file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData((prev) => ({
-        ...prev,
-        newFiles: Array.from(e.target.files),
-      }));
-    }
+    const files = e.target.files;
+    if (!files) return; // ✅ guard clause
+
+    setFormData((prev) => ({
+      ...prev,
+      newFiles: Array.from(files), // ✅ now TypeScript is happy
+    }));
   };
+
 
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,13 +107,13 @@ export default function AdvertisementManager() {
     try {
       if (editingAd) {
         await axios.put(
-          `http://localhost:3005/api/advertisements/${editingAd._id}`,
+          `${API_URL}/api/advertisements/${editingAd._id}`,
           data,
           { headers: { Authorization: `Bearer ${cookies.token}` } }
         );
         toast.success("Advertisement updated successfully!");
       } else {
-        await axios.post(`http://localhost:3005/api/advertisements`, data, {
+        await axios.post(`${API_URL}/api/advertisements`, data, {
           headers: { Authorization: `Bearer ${cookies.token}` },
         });
         toast.success("Advertisement created successfully!");
@@ -176,9 +180,8 @@ export default function AdvertisementManager() {
           ads.map((ad) => (
             <div
               key={ad._id}
-              className={`bg-white shadow-lg rounded-xl border border-gray-200 p-4 flex flex-col justify-between transition hover:shadow-xl ${
-                !ad.isActive ? "opacity-60" : ""
-              }`}
+              className={`bg-white shadow-lg rounded-xl border border-gray-200 p-4 flex flex-col justify-between transition hover:shadow-xl ${!ad.isActive ? "opacity-60" : ""
+                }`}
             >
               <div className="mb-4">
                 <h2 className="text-lg font-bold text-gray-800">{ad.title}</h2>
@@ -202,9 +205,8 @@ export default function AdvertisementManager() {
               {/* Status & Actions */}
               <div className="flex items-center justify-between mt-auto">
                 <span
-                  className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                    ad.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                  }`}
+                  className={`px-2 py-1 text-xs rounded-full font-semibold ${ad.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}
                 >
                   {ad.isActive ? "Active" : "Inactive"}
                 </span>
@@ -293,37 +295,37 @@ export default function AdvertisementManager() {
                 </select>
               </div>
 
-            <div>
-  <label className="block font-medium mb-1 text-sm">Images</label>
-  <input
-    type="file"
-    multiple
-    onChange={handleFileChange}
-    className="w-full mb-2"
-  />
-  
-  {/* Preview existing images */}
-  <div className="flex flex-wrap gap-2 mb-2">
-    {formData.images?.map((url, idx) => (
-      <img
-        key={idx}
-        src={url}
-        alt="existing"
-        className="w-20 h-20 object-cover rounded-md border"
-      />
-    ))}
+              <div>
+                <label className="block font-medium mb-1 text-sm">Images</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  className="w-full mb-2"
+                />
 
-    {/* Preview newly selected files */}
-    {formData.newFiles?.map((file, idx) => (
-      <img
-        key={idx}
-        src={URL.createObjectURL(file)}
-        alt="preview"
-        className="w-20 h-20 object-cover rounded-md border"
-      />
-    ))}
-  </div>
-</div>
+                {/* Preview existing images */}
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.images?.map((url, idx) => (
+                    <img
+                      key={idx}
+                      src={url}
+                      alt="existing"
+                      className="w-20 h-20 object-cover rounded-md border"
+                    />
+                  ))}
+
+                  {/* Preview newly selected files */}
+                  {formData.newFiles?.map((file, idx) => (
+                    <img
+                      key={idx}
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className="w-20 h-20 object-cover rounded-md border"
+                    />
+                  ))}
+                </div>
+              </div>
 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -333,7 +335,7 @@ export default function AdvertisementManager() {
                     type="date"
                     name="startDate"
                     value={formData.startDate}
-                     min={today}
+                    min={today}
                     onChange={handleChange}
                     className="w-full border rounded-lg px-3 py-2"
                   />
@@ -344,7 +346,7 @@ export default function AdvertisementManager() {
                     type="date"
                     name="endDate"
                     value={formData.endDate}
-                     min={today}
+                    min={today}
                     onChange={handleChange}
                     className="w-full border rounded-lg px-3 py-2"
                   />
@@ -401,7 +403,7 @@ export default function AdvertisementManager() {
                 onClick={async () => {
                   if (!deleteId) return;
                   try {
-                    await axios.delete(`http://localhost:3005/api/advertisements/${deleteId}`, {
+                    await axios.delete(`${API_URL}/api/advertisements/${deleteId}`, {
                       headers: { Authorization: `Bearer ${cookies.token}` },
                     });
                     toast.success("Advertisement deleted successfully!");
