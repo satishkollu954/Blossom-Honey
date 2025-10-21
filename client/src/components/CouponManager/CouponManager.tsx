@@ -28,6 +28,8 @@ export default function CouponManager() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const categories = ["dry-fruits", "honey", "nuts-seeds", "spices", "other"];
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 
     const [formData, setFormData] = useState<Coupon>({
         code: "",
@@ -44,7 +46,7 @@ export default function CouponManager() {
 
     const fetchCoupons = async () => {
         try {
-            const res = await axios.get(`http://localhost:3005/api/coupons`, {
+            const res = await axios.get(`${API_URL}/api/coupons`, {
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
             setCoupons(res.data);
@@ -82,13 +84,13 @@ export default function CouponManager() {
         try {
             if (editingCoupon) {
                 await axios.put(
-                    `http://localhost:3005/api/coupons/${editingCoupon._id}`,
+                    `${API_URL}/api/coupons/${editingCoupon._id}`,
                     formData,
                     { headers: { Authorization: `Bearer ${cookies.token}` } }
                 );
                 toast.success("Coupon updated successfully!");
             } else {
-                await axios.post(`http://localhost:3005/api/coupons`, formData, {
+                await axios.post(`${API_URL}/api/coupons`, formData, {
                     headers: { Authorization: `Bearer ${cookies.token}` },
                 });
                 toast.success("Coupon created successfully!");
@@ -399,7 +401,7 @@ export default function CouponManager() {
                                 onClick={async () => {
                                     if (!deleteId) return;
                                     try {
-                                        await axios.delete(`http://localhost:3005/api/coupons/${deleteId}`, {
+                                        await axios.delete(`${API_URL}/api/coupons/${deleteId}`, {
                                             headers: { Authorization: `Bearer ${cookies.token}` },
                                         });
                                         toast.success("Coupon deleted successfully!");

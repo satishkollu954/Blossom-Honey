@@ -40,13 +40,15 @@ const Cart: React.FC = () => {
 
     const navigate = useNavigate();
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 
     const token = cookies.token;
 
     useEffect(() => {
         const fetchCart = async () => {
             try {
-                const res = await axios.get<CartResponse>("http://localhost:3005/api/cart", {
+                const res = await axios.get<CartResponse>(`${API_URL}/api/cart`, {
                     headers: { Authorization: token ? `Bearer ${token}` : "" },
                 });
                 setCartItems(res.data.items || []);
@@ -74,7 +76,7 @@ const Cart: React.FC = () => {
 
         try {
             await axios.put(
-                "http://localhost:3005/api/cart/update",
+                `${API_URL}/api/cart/update`,
                 { productId, variantId, quantity: newQuantity },
                 { headers: { Authorization: token ? `Bearer ${token}` : "" } }
             );
@@ -103,7 +105,7 @@ const Cart: React.FC = () => {
 
         try {
             await axios.put(
-                "http://localhost:3005/api/cart/update",
+                `${API_URL}/api/cart/update`,
                 { productId, variantId, quantity: newQuantity },
                 { headers: { Authorization: token ? `Bearer ${token}` : "" } }
             );
@@ -125,7 +127,7 @@ const Cart: React.FC = () => {
     // Remove item
     const handleRemove = async (productId: string, variantId: string) => {
         try {
-            await axios.delete(`http://localhost:3005/api/cart/remove/${productId}/${variantId}`, {
+            await axios.delete(`${API_URL}/api/cart/remove/${productId}/${variantId}`, {
                 headers: { Authorization: token ? `Bearer ${token}` : "" },
                 data: { productId, variantId },
             });

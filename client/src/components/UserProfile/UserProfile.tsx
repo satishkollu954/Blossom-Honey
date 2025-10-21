@@ -44,12 +44,14 @@ export function UserProfile() {
         isDefault: false,
     });
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const token = cookies.token;
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await axios.get("http://localhost:3005/api/user/profile", {
+                const res = await axios.get(`${API_URL}/api/user/profile`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setUser(res.data);
@@ -73,7 +75,7 @@ export function UserProfile() {
     const handleSave = async () => {
         try {
             await axios.put(
-                "http://localhost:3005/api/user/profile",
+                `${API_URL}/api/user/profile`,
                 { name: user?.name },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -135,13 +137,13 @@ export function UserProfile() {
         try {
             // Add new address
             await axios.post(
-                "http://localhost:3005/api/user/addresses",
+                `${API_URL}/api/user/addresses`,
                 newAddress,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             // Re-fetch user profile to get updated addresses
-            const res = await axios.get("http://localhost:3005/api/user/profile", {
+            const res = await axios.get(`${API_URL}/api/user/profile`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setUser(res.data);
@@ -178,13 +180,13 @@ export function UserProfile() {
 
         try {
             await axios.put(
-                `http://localhost:3005/api/user/addresses/${id}`,
+                `${API_URL}/api/user/addresses/${id}`,
                 editedAddress,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             // Re-fetch full user to ensure backend state matches
-            const res = await axios.get("http://localhost:3005/api/user/profile", {
+            const res = await axios.get(`${API_URL}/api/user/profile`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setUser(res.data);
@@ -202,7 +204,7 @@ export function UserProfile() {
     const deleteAddress = async (id: string) => {
         if (!user) return;
         try {
-            await axios.delete(`http://localhost:3005/api/user/addresses/${id}`, {
+            await axios.delete(`${API_URL}/api/user/addresses/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             // Remove the deleted address from state

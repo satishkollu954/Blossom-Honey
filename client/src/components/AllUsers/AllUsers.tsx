@@ -26,11 +26,13 @@ export default function UserList() {
         return "-";
     };
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);
             try {
-                const res = await fetch("http://localhost:3005/api/user", {
+                const res = await fetch(`${API_URL}/api/user`, {
                     headers: {
                         Authorization: `Bearer ${cookies.token}`,
                     },

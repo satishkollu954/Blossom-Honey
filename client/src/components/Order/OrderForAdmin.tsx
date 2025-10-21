@@ -181,6 +181,8 @@ const OrderForAdmin: React.FC = () => {
   // New state for search functionality
   const [searchTerm, setSearchTerm] = useState("");
 
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
@@ -190,7 +192,7 @@ const OrderForAdmin: React.FC = () => {
     // ... (fetch logic remains the same)
     try {
       const token = cookies.token;
-      const res = await axios.get("http://localhost:3005/api/orders/admin/all", {
+      const res = await axios.get(`${API_URL}/api/orders/admin/all`, {
         headers: { Authorization: token ? `Bearer ${token}` : "" },
       });
       if (Array.isArray(res.data)) {
@@ -216,7 +218,7 @@ const OrderForAdmin: React.FC = () => {
       setUpdating(orderId);
       const token = cookies.token;
       const { data } = await axios.put(
-        `http://localhost:3005/api/orders/admin/${orderId}/status`,
+        `${API_URL}/api/orders/admin/${orderId}/status`,
         { status: newStatus },
         { headers: { Authorization: token ? `Bearer ${token}` : "" } }
       );

@@ -32,6 +32,8 @@ const UploadProduct: React.FC = () => {
     const [cookies] = useCookies(["token"]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const [product, setProduct] = useState<Product>({
         name: "",
         description: "",
@@ -173,7 +175,7 @@ const UploadProduct: React.FC = () => {
                 });
             });
 
-            await axios.post("http://localhost:3005/api/products/admin", formData, {
+            await axios.post(`${API_URL}/api/products/admin`, formData, {
                 headers: {
                     Authorization: `Bearer ${cookies.token}`,
                     "Content-Type": "multipart/form-data",
