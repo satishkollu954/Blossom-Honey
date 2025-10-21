@@ -16,10 +16,4 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max per file
 });
 
-const extractFileUrls = (files) => {
-  if (Array.isArray(files))
-    return files.map((f) => f.secure_url || f.url).filter(Boolean);
-  return [];
-};
-
-module.exports = { upload, cloudinary, extractFileUrls };
+module.exports = { upload };

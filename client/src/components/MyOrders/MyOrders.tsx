@@ -121,9 +121,10 @@ export function MyOrders() {
     // --- NEW REVIEW FUNCTIONS ---
 
     const openReviewModal = (productId: string, productName: string) => {
+        console.log("Opening review modal for product:", productId._id, productName);
         setModalState({
             isOpen: true,
-            productId,
+            productId: productId._id,
             productName,
         });
     };
