@@ -120,7 +120,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
       </div>
 
       <div style="padding: 30px;">
-        <p style="font-size: 16px;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size: 16px;">Hello <strong>${user.name}</strong>,</p>
         <p style="font-size: 15px; line-height: 1.6;">
           Please use the verification code below to complete your registration with Blossom Honey.
         </p>
@@ -203,7 +203,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
       </div>
 
       <div style="padding: 30px;">
-        <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+        <p style="font-size: 16px;">Hi <strong>${user.name}</strong>,</p>
         <p style="font-size: 15px; line-height: 1.6;">
           We received a request to reset your Blossom Honey password.<br />
           Use the OTP below to continue with your password reset:
