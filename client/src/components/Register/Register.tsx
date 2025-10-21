@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import { User, Mail, Lock, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 
 
 
@@ -63,6 +64,7 @@ export function UserRegister() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+            <ToastContainer position="top-center" autoClose={1500} />
             <div className="w-full max-w-md bg-white shadow-xl rounded-lg p-8">
                 <div className="text-center mb-6">
                     <h1 className="text-3xl font-semibold text-gray-800">Create Account</h1>
