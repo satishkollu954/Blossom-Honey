@@ -69,17 +69,18 @@ export const ReviewFormModal: React.FC<ReviewFormModalProps> = ({
         formData.append("comment", comment);
 
         images.forEach((file) => {
-            formData.append("images", file); // 'images' must match the field name your backend expects for files
+            formData.append("reviewImages", file); // 'images' must match the field name your backend expects for files
         });
         // --- END KEY CHANGE ---
 
         try {
             await axios.post(
-                `${API_URL}/api/products/${productId}/review`, // Your review submission endpoint
+                `${API_URL}/api/products/${productId}/reviews`, // Your review submission endpoint
                 formData, // Send FormData object
                 {
                     headers: {
                         Authorization: `Bearer ${cookies.token}`,
+                        "Content-Type": "multipart/form-data",
                         // Content-Type: multipart/form-data is automatically set by Axios when using FormData
                     },
                 }

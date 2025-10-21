@@ -10,6 +10,7 @@ const {
 const { cloudinary } = require("../Middleware/newmiddleware");
 
 const { deleteCloudinaryFolder } = require("../Middleware/uploadMiddleware");
+const User = require("../Model/User");
 
 // Generate SKU
 function generateSKU(productName) {
@@ -121,23 +122,28 @@ const getProductById = asyncHandler(async (req, res) => {
 
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
-  const product = await Product.findById(req.params.id);
+  const productId = req.params.id;
 
+  console.log("Creating review with rating:", rating, "and comment:", comment);
+  console.log("Product ID:", productId);
+
+  const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
 
+  // ✅ Check if user already reviewed
   const alreadyReviewed = product.reviews.find(
     (r) => r.user.toString() === req.user._id.toString()
   );
   if (alreadyReviewed) {
-    res.status(400).json({ message: "Product already reviewed by this user" });
+    return res
+      .status(400)
+      .json({ message: "Product already reviewed by this user" });
   }
 
-  const reviewIndex = product.reviews.length;
-
+  // ✅ Handle image/video uploads
   const reviewImages = [];
   if (req.files?.reviewImages) {
     for (const file of req.files.reviewImages) {
-      // Detect type: image or video
       const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
@@ -148,19 +154,22 @@ const createProductReview = asyncHandler(async (req, res) => {
       reviewImages.push(url);
     }
   }
-  const username = await User.findById(req.user._id).name;
-  console.log("Username for review:", username);
+
+  const user = await User.findById(req.user._id);
+  const username = user?.name || "Anonymous";
+
+  // ✅ Create new review
   const review = {
     user: req.user._id,
-    username: username,
+    username,
     rating: Number(rating),
     comment,
-    images: reviewImages, // store uploaded URLs
+    images: reviewImages,
   };
 
   product.reviews.push(review);
 
-  // Update ratings
+  // ✅ Update ratings
   const totalRating = product.reviews.reduce(
     (acc, item) => acc + item.rating,
     0
@@ -170,7 +179,12 @@ const createProductReview = asyncHandler(async (req, res) => {
 
   await product.save();
 
-  res.status(201).json({ message: "Review added successfully", review });
+  console.log("✅ Review added successfully by", username);
+
+  return res.status(201).json({
+    message: "Review added successfully",
+    review,
+  });
 });
 
 const getProductReviews = asyncHandler(async (req, res) => {
