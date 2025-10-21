@@ -185,7 +185,7 @@ export const ReviewFormModal: React.FC<ReviewFormModalProps> = ({
                             ))}
 
                             {/* File Input Trigger (Appears if max limit not reached) */}
-                            {images.length < 4 && (
+                            {images.length < 3 && (
                                 <label
                                     htmlFor="image-upload"
                                     className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
