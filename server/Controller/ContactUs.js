@@ -21,14 +21,30 @@ exports.createContactMessage = async (req, res) => {
     // Send confirmation email
     await sendEmail({
       to: email,
-      subject: "Thank You for Contacting FitFusion",
+      subject: "Thank You for Contacting Blossomhoney",
       html: `
-        <h3>Hi ${name},</h3>
-        <p>Thank you for getting in touch with us. We have received your message and our team will respond shortly.</p>
-        <p><strong>Your message:</strong></p>
-        <blockquote>${message}</blockquote>
-        <p>Best regards,<br>FitFusion Team</p>
-      `,
+    <div style="font-family: Arial, sans-serif; color: #333;">
+      <h2 style="color: #f59e0b;">Hello ${name},</h2>
+      <p>Thank you for reaching out to <strong>Blossomhoney</strong>. We have successfully received your message and our support team will get back to you as soon as possible.</p>
+
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+      
+      <p><strong>Your message:</strong></p>
+      <blockquote style="background: #f9f9f9; border-left: 4px solid #f59e0b; padding: 10px; margin: 0;">
+        ${message}
+      </blockquote>
+
+      <p>If your inquiry is urgent, please reply to this email or contact us at <a href="mailto:support@Bloosomhoney.com">support@Bloosomhoney.com</a>.</p>
+
+      <p>Best regards,<br>
+      <strong>Bloosomhoney Team</strong></p>
+
+      <footer style="font-size: 12px; color: #999; margin-top: 20px;">
+        Blossomhoney | Your health, our priority.<br>
+        www.Blossomhoney.com
+      </footer>
+    </div>
+  `,
     });
 
     res.status(201).json({

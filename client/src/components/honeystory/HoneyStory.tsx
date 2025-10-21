@@ -42,7 +42,7 @@ export default function HoneyStory() {
     const farmData = [
         {
             img: "src/assets/home-bg.png",
-            title: "Blooming Fields",
+            title: "Blossomhoney Fields",
             desc: "Our bees collect nectar from pesticide-free, lush flower fields that bloom all year round.",
         },
         {
