@@ -7,6 +7,16 @@ import "react-toastify/dist/ReactToastify.css";
 import { useCookies } from "react-cookie";
 import { useCart } from "../context/cartcontext";
 
+
+interface Review {
+    user: string; // User ID as string
+    rating: number;
+    comment?: string;
+    images?: string[];
+    createdAt: string; // or Date
+    userName?: string; // optional, populate from backend for display
+}
+
 interface Variant {
     _id: string;
     weight: string;
@@ -26,6 +36,8 @@ interface Product {
     images: string[];
     deliveryTime: string;
     shippingCharge: number;
+    reviews?: Review[];
+
 }
 
 const ProductDetails: React.FC = () => {
@@ -208,7 +220,7 @@ const ProductDetails: React.FC = () => {
                 {/* Info */}
                 <div className="lg:w-1/2 flex flex-col justify-center -mt-6">
                     <h1 className="text-3xl font-semibold mb-3 text-gray-800">{product.name}</h1>
-                    <p className="text-gray-600 mb-4">{product.description}</p>
+                    {/* <p className="text-gray-600 mb-4">{product.description}</p> */}
 
                     <div className="flex items-center gap-3 mb-4">
                         <span className="text-2xl font-bold text-yellow-600">₹{selectedVariant.finalPrice}</span>
@@ -253,6 +265,67 @@ const ProductDetails: React.FC = () => {
                         <p>Delivery Time: {product.deliveryTime}</p>
                     </div>
                 </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-b-xl shadow-inner">
+                <p className="text-gray-800 font-semibold mb-1">Description</p>
+                <p className="text-gray-600 text-sm line-clamp-3">
+                    {product.description}
+                </p>
+            </div>
+
+
+
+            {/* Reviews Section */}
+            <div className="flex-1 p-3 bg-gray-50 rounded-xl shadow-inner max-h-80 overflow-y-auto">
+                <p className="text-gray-800 font-semibold mb-3">Reviews</p>
+
+                {product.reviews && product.reviews.length > 0 ? (
+                    product.reviews.map((review, index) => (
+                        <div
+                            key={index}
+                            className="mb-4 p-3 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
+                        >
+                            {/* Reviewer Name & Rating */}
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="font-semibold text-gray-700">{review.userName || "Anonymous"}</p>
+                                <div className="flex items-center">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <svg
+                                            key={i}
+                                            className={`w-4 h-4 ${i < review.rating ? "text-amber-400" : "text-gray-300"
+                                                }`}
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.946a1 1 0 00.95.69h4.148c.969 0 1.371 1.24.588 1.81l-3.36 2.44a1 1 0 00-.364 1.118l1.287 3.945c.3.922-.755 1.688-1.538 1.118l-3.36-2.44a1 1 0 00-1.175 0l-3.36 2.44c-.783.57-1.838-.196-1.538-1.118l1.287-3.945a1 1 0 00-.364-1.118l-3.36-2.44c-.783-.57-.38-1.81.588-1.81h4.148a1 1 0 00.95-.69l1.286-3.946z" />
+                                        </svg>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Comment */}
+                            {review.comment && (
+                                <p className="text-gray-600 text-sm mb-2">{review.comment}</p>
+                            )}
+
+                            {/* Review Images */}
+                            {review.images && review.images.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto">
+                                    {review.images.map((img, idx) => (
+                                        <img
+                                            key={idx}
+                                            src={img}
+                                            alt="review"
+                                            className="w-16 h-16 object-cover rounded-md"
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-gray-500 text-sm">No reviews yet.</p>
+                )}
             </div>
 
             {/* Same Category Carousel */}

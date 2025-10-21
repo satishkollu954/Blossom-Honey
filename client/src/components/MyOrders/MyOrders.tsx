@@ -3,7 +3,9 @@ import axios from "axios";
 import { Package, Truck, CreditCard, Calendar } from "lucide-react";
 import { useCookies } from "react-cookie";
 import { toast } from "react-toastify";
+import { ReviewFormModal } from "../reviewmodel/ReviewModel"; // Import the new modal component
 
+// --- INTERFACES (UNCHANGED) ---
 interface Variant {
     weight?: string;
     type?: string;
@@ -11,13 +13,14 @@ interface Variant {
 }
 
 interface OrderItem {
-    product: string;
+    product: string; // The MongoDB ObjectId of the Product
     name: string;
     variant?: Variant;
     price: number;
     quantity: number;
     images: string[];
 }
+// ... (Delivery and ShippingAddress interfaces are unchanged) ...
 
 interface Delivery {
     partner?: string;
@@ -54,15 +57,36 @@ interface Order {
     shippingAddress?: ShippingAddress;
 }
 
+// --- NEW INTERFACE FOR MODAL STATE ---
+interface ModalState {
+    isOpen: boolean;
+    productId: string;
+    productName: string;
+}
+
 export function MyOrders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [cookies] = useCookies(["token"]);
 
+    // State to track the product ID and name for the review modal
+    const [modalState, setModalState] = useState<ModalState>({
+        isOpen: false,
+        productId: "",
+        productName: "",
+    });
+
+    // State to locally manage which products are reviewed (optional but helpful for UX)
+    // Map of productId to boolean (true if reviewed)
+    const [reviewedProducts, setReviewedProducts] = useState<Record<string, boolean>>({});
+
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
         fetchOrders();
+        // **OPTIONAL ENHANCEMENT**: Fetch initial review status for all products in all orders.
+        // This would require a new, dedicated endpoint on the backend.
+        // For simplicity, we rely on the `onReviewSubmitted` function for real-time updates.
     }, []);
 
     const fetchOrders = async () => {
@@ -94,6 +118,34 @@ export function MyOrders() {
         }
     };
 
+    // --- NEW REVIEW FUNCTIONS ---
+
+    const openReviewModal = (productId: string, productName: string) => {
+        setModalState({
+            isOpen: true,
+            productId,
+            productName,
+        });
+    };
+
+    const closeReviewModal = () => {
+        setModalState({
+            isOpen: false,
+            productId: "",
+            productName: "",
+        });
+    };
+
+    const handleReviewSubmitted = (productId: string) => {
+        // Mark the product as reviewed locally after successful submission
+        setReviewedProducts((prev) => ({
+            ...prev,
+            [productId]: true,
+        }));
+    };
+
+    // --- END NEW REVIEW FUNCTIONS ---
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-60">
@@ -120,15 +172,14 @@ export function MyOrders() {
 
             <div className="grid grid-cols-1 gap-6">
                 {orders.map((order) => {
-                    const deliveryStatus =
-                        order.delivery?.deliveryStatus || order.status;
+                    const isDelivered = order.status === "Delivered";
 
                     return (
                         <div
                             key={order._id}
                             className="bg-white shadow-lg rounded-2xl border border-gray-200 p-5 sm:p-6 hover:shadow-xl transition-all"
                         >
-                            {/* Header */}
+                            {/* ... (Order Header - UNCHANGED) ... */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 border-b pb-3">
                                 <div>
                                     <h2 className="font-semibold text-gray-800">
@@ -152,43 +203,65 @@ export function MyOrders() {
                                 </span>
                             </div>
 
-                            {/* Products */}
+                            {/* Products (UPDATED) */}
                             <div className="space-y-4 mb-4">
-                                {order.products.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex flex-col sm:flex-row gap-4 border-b pb-4 last:border-b-0"
-                                    >
-                                        <img
-                                            src={item.images?.[0] || "/placeholder.png"}
-                                            alt={item.name}
-                                            className="w-24 h-24 object-cover rounded-lg border"
-                                        />
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                            {item.variant && (
-                                                <p className="text-sm text-gray-500">
-                                                    {item.variant.weight && `Weight: ${item.variant.weight}`}{" "}
-                                                    {item.variant.type && `• Type: ${item.variant.type}`}{" "}
-                                                    {item.variant.packaging &&
-                                                        `• Packaging: ${item.variant.packaging}`}
+                                {order.products.map((item, index) => {
+                                    // Determine if the review button should be disabled
+                                    const hasReviewed = reviewedProducts[item.product];
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex flex-col sm:flex-row gap-4 border-b pb-4 last:border-b-0"
+                                        >
+                                            <img
+                                                src={item.images?.[0] || "/placeholder.png"}
+                                                alt={item.name}
+                                                className="w-24 h-24 object-cover rounded-lg border"
+                                            />
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                                                {/* ... (Product Details - UNCHANGED) ... */}
+                                                {item.variant && (
+                                                    <p className="text-sm text-gray-500">
+                                                        {item.variant.weight && `Weight: ${item.variant.weight}`}{" "}
+                                                        {item.variant.type && `• Type: ${item.variant.type}`}{" "}
+                                                        {item.variant.packaging &&
+                                                            `• Packaging: ${item.variant.packaging}`}
+                                                    </p>
+                                                )}
+                                                <p className="text-gray-700">
+                                                    Qty: <span className="font-medium">{item.quantity}</span>
                                                 </p>
+                                                <p className="text-gray-700">
+                                                    Price:{" "}
+                                                    <span className="font-semibold text-amber-700">
+                                                        ₹{item.price.toFixed(2)}
+                                                    </span>
+                                                </p>
+                                            </div>
+
+                                            {/* NEW: Review Button */}
+                                            {isDelivered && (
+                                                <div className="sm:self-center sm:ml-auto">
+                                                    <button
+                                                        onClick={() => openReviewModal(item.product, item.name)}
+                                                        disabled={hasReviewed}
+                                                        className={`px-3 py-1 text-sm font-semibold rounded-lg transition ${hasReviewed
+                                                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                            : "bg-amber-500 text-white hover:bg-amber-600"
+                                                            }`}
+                                                    >
+                                                        {hasReviewed ? "Reviewed" : "Write a Review"}
+                                                    </button>
+                                                </div>
                                             )}
-                                            <p className="text-gray-700">
-                                                Qty: <span className="font-medium">{item.quantity}</span>
-                                            </p>
-                                            <p className="text-gray-700">
-                                                Price:{" "}
-                                                <span className="font-semibold text-amber-700">
-                                                    ₹{item.price.toFixed(2)}
-                                                </span>
-                                            </p>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
-                            {/* Order Summary */}
+                            {/* ... (Order Summary and Delivery Info - UNCHANGED) ... */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-700">
                                 <div className="flex items-center gap-2">
                                     <CreditCard size={16} className="text-amber-600" />
@@ -208,31 +281,22 @@ export function MyOrders() {
                                 </div>
                             </div>
 
-                            {/* Delivery Info */}
                             {(order.delivery || order.shippingAddress) && (
                                 <div className="mt-4 bg-gray-50 rounded-xl p-4 text-sm">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Truck size={18} className="text-amber-600" />
                                         <p className="font-semibold text-gray-800">Delivery Information</p>
                                     </div>
-
-                                    {/* Delivery Status */}
                                     <p>
                                         Status:{" "}
                                         <span className="font-medium">
                                             {order.delivery?.deliveryStatus || order.status}
                                         </span>
                                     </p>
-
-                                    {/* Delivery Partner */}
                                     {order.delivery?.partner && <p>Partner: {order.delivery.partner}</p>}
-
-                                    {/* Tracking ID */}
                                     {order.delivery?.trackingId && (
                                         <p>Tracking ID: {order.delivery.trackingId}</p>
                                     )}
-
-                                    {/* Estimated Delivery Date */}
                                     {order.delivery?.estimatedDeliveryDate && (
                                         <p>
                                             Estimated Delivery:{" "}
@@ -241,8 +305,6 @@ export function MyOrders() {
                                             </span>
                                         </p>
                                     )}
-
-                                    {/* Shipping Address */}
                                     {order.shippingAddress && (
                                         <div className="mt-2">
                                             <p className="font-semibold">Shipping Address:</p>
@@ -261,8 +323,7 @@ export function MyOrders() {
                                 </div>
                             )}
 
-
-                            {/* Actions */}
+                            {/* Actions (UNCHANGED) */}
                             <div className="mt-4 flex gap-3">
                                 {["Pending", "Processing", "Placed"].includes(order.status) && (
                                     <button
@@ -277,6 +338,15 @@ export function MyOrders() {
                     );
                 })}
             </div>
+
+            {/* Review Form Modal */}
+            <ReviewFormModal
+                isOpen={modalState.isOpen}
+                onClose={closeReviewModal}
+                productId={modalState.productId}
+                productName={modalState.productName}
+                onReviewSubmitted={handleReviewSubmitted}
+            />
         </div>
     );
 }

@@ -31,6 +31,7 @@ import OrderForAdmin from "./components/Order/OrderForAdmin";
 
 
 
+
 function App() {
   return (
     <>
@@ -69,7 +70,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-              <Route
+          <Route
             path="/orders"
             element={
               <ProtectedRoute allowedRole="admin">
@@ -109,6 +110,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
 
           <Route
             path="/my-orders"
