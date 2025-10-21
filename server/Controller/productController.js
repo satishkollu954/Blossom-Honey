@@ -148,9 +148,11 @@ const createProductReview = asyncHandler(async (req, res) => {
       reviewImages.push(url);
     }
   }
-
+  const username = await User.findById(req.user._id).name;
+  console.log("Username for review:", username);
   const review = {
     user: req.user._id,
+    username: username,
     rating: Number(rating),
     comment,
     images: reviewImages, // store uploaded URLs
@@ -188,8 +190,6 @@ const getProductReviews = asyncHandler(async (req, res) => {
     ratings: product.ratings, // optional: send average/count
   });
 });
-
-module.exports = { getProductReviews };
 
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
   try {
