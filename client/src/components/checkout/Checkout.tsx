@@ -137,7 +137,7 @@ export const Checkout: React.FC = () => {
                     key: razorpayKey,
                     amount: razorpayOrder.amount,
                     currency: razorpayOrder.currency,
-                    name: "FitFusion Store",
+                    name: "Blossomhoney Store",
                     description: "Order Payment",
                     order_id: razorpayOrder.id,
                     handler: async (response: any) => {
