@@ -79,13 +79,15 @@ const cancelOrder = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const orderId = req.params.id;
 
-  const order = await Order.findOne({ _id: orderId, user: userId });
+  const order = await Order.findOne({ _id: orderId, user: userId }).populate(
+    "user"
+  );
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
   }
 
-  // Only allow cancel if order is NOT shipped or delivered
+  // Only allow cancel if order is NOT shipped, delivered, cancelled, or returned
   if (
     ["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)
   ) {
@@ -107,7 +109,7 @@ const cancelOrder = asyncHandler(async (req, res) => {
         amount: order.totalAmount * 100, // paise
       });
       order.paymentStatus = "Refunded";
-      order.refundId = refund.id; // optional
+      order.refundId = refund.id;
     } catch (err) {
       console.error("Refund failed:", err);
       res.status(500);
@@ -133,6 +135,61 @@ const cancelOrder = asyncHandler(async (req, res) => {
   }
 
   await order.save();
+
+  // ---------------- SEND EMAIL ----------------
+  const userEmail = order.user.email;
+  const userName = order.user.name;
+
+  await sendEmail({
+    to: userEmail,
+    subject: `Order #${order._id} Cancelled - Blossom Honey 🍯`,
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #fff8e7; padding: 30px;">
+        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="background-color: #fbbf24; padding: 20px; text-align: center;">
+            <h2 style="color: #fff; margin: 0;">Order Cancelled 🍯</h2>
+          </div>
+
+          <div style="padding: 30px;">
+            <p>Hi <strong>${userName}</strong>,</p>
+            <p>Your order <strong>#${
+              order._id
+            }</strong> has been successfully <strong>cancelled</strong>.</p>
+
+            <div style="background-color: #fff8e7; padding: 15px 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 15px;"><strong>Order Summary:</strong></p>
+              <ul style="font-size: 14px; color: #555; padding-left: 20px;">
+                ${order.products
+                  .map(
+                    (item) =>
+                      `<li>${item.name} × ${item.quantity} – ₹${item.price}</li>`
+                  )
+                  .join("")}
+              </ul>
+              <p style="font-size: 15px; font-weight: bold; color: #333;">Total Refunded: ₹${
+                order.paymentStatus === "Refunded" ? order.totalAmount : 0
+              }</p>
+            </div>
+
+            <p style="font-size: 14px; color: #555;">
+              If you have any questions, feel free to contact our support team.
+            </p>
+
+            <p style="margin-top: 30px; font-size: 14px; color: #777;">
+              Regards,<br />
+              <strong>The Blossom Honey Team 🍯</strong><br />
+              <a href="https://yourfrontenddomain.com" style="color: #fbbf24;">www.blossomhoney.com</a>
+            </p>
+          </div>
+
+          <div style="background-color: #fef3c7; text-align: center; padding: 15px; font-size: 12px; color: #777;">
+            © ${new Date().getFullYear()} Blossom Honey. All rights reserved.
+          </div>
+        </div>
+      </div>
+    `,
+  });
+
   res.json({ message: "Order cancelled successfully", order });
 });
 
