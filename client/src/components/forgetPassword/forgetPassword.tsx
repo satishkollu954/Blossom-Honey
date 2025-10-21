@@ -30,6 +30,8 @@ export function ForgetPassword() {
     const [isOtpLoading, setIsOtpLoading] = useState<boolean>(false);
     const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 
     // Simple email validation regex
@@ -48,7 +50,7 @@ export function ForgetPassword() {
         setIsOtpLoading(true);
 
         try {
-            await axios.post(`http://localhost:3005/api/auth/send-otp`, {
+            await axios.post(`${API_URL}/api/auth/send-otp`, {
                 email: email,
             });
             toast.success("OTP sent to your email.");
@@ -73,7 +75,7 @@ export function ForgetPassword() {
         setIsOtpLoading(true);
 
         try {
-            await axios.post(`http://localhost:3005/api/auth/verify-otp`, {
+            await axios.post(`${API_URL}/api/auth/verify-otp`, {
                 email: email,
                 otp: otp,
             });
@@ -107,7 +109,7 @@ export function ForgetPassword() {
 
         try {
             const res = await axios.post<ResetPasswordResponse>(
-                `http://localhost:3005/api/auth/reset-password`,
+                `${API_URL}/api/auth/reset-password`,
                 {
                     email: email,
                     newPassword: newPassword,

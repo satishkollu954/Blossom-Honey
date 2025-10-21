@@ -29,6 +29,8 @@ export function UserRegister() {
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const formik = useFormik<UserRegisterValues>({
         initialValues: {
             name: '',
@@ -44,7 +46,7 @@ export function UserRegister() {
             // We only send the required data to the backend (excluding confirmPassword)
             const { name, email, password } = values;
 
-            axios.post(`http://localhost:3005/api/auth/signup`, { name, email, password })
+            axios.post(`${API_URL}/api/auth/signup`, { name, email, password })
                 .then((response) => {
                     setIsLoading(false);
 

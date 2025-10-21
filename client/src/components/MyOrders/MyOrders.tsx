@@ -59,13 +59,15 @@ export function MyOrders() {
     const [loading, setLoading] = useState(true);
     const [cookies] = useCookies(["token"]);
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     useEffect(() => {
         fetchOrders();
     }, []);
 
     const fetchOrders = async () => {
         try {
-            const res = await axios.get("http://localhost:3005/api/orders/", {
+            const res = await axios.get(`${API_URL}/api/orders/`, {
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
             setOrders(res.data);
@@ -80,7 +82,7 @@ export function MyOrders() {
     const handleCancel = async (orderId: string) => {
         try {
             await axios.post(
-                `http://localhost:3005/api/orders/${orderId}/cancel`,
+                `${API_URL}/api/orders/${orderId}/cancel`,
                 {},
                 { headers: { Authorization: `Bearer ${cookies.token}` } }
             );

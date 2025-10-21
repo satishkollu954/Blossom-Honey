@@ -16,6 +16,8 @@ export function Contact() {
     // 1. Add Loading State
     const [isLoading, setIsLoading] = useState(false);
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const {
         register,
         handleSubmit,
@@ -28,7 +30,7 @@ export function Contact() {
         setIsLoading(true);
 
 
-        axios.post(`http://localhost:3005/api/contact-Us`, data)
+        axios.post(`${API_URL}/api/contact-Us`, data)
             .then((response) => {
                 toast.success("Message sent! We'll get back to you soon.");
                 reset();

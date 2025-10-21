@@ -27,6 +27,8 @@ export function AdminLogin() {
 
     const fromPath = location.state?.from?.pathname || '/';
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const formik = useFormik<AdminLoginValues>({
         initialValues: {
             email: '',
@@ -34,7 +36,7 @@ export function AdminLogin() {
         },
         validationSchema: AdminLoginSchema,
         onSubmit: (values) => {
-            axios.post(`http://localhost:3005/api/auth/login`, values)
+            axios.post(`${API_URL}/api/auth/login`, values)
                 .then((response) => {
                     const { user, token } = response.data;
 

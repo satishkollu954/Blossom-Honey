@@ -40,6 +40,8 @@ export default function ViewProducts() {
     const [editedVariant, setEditedVariant] = useState<Partial<Variant>>({});
     const [cookies] = useCookies(["token"]);
 
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
     const [confirmModal, setConfirmModal] = useState<{
         type: "product" | "variant" | null;
         productId: string | null;
@@ -53,7 +55,7 @@ export default function ViewProducts() {
     });
 
     function getProducts() {
-        fetch(`http://localhost:3005/api/products/admin/`, {
+        fetch(`${API_URL}/api/products/admin/`, {
             headers: { Authorization: `Bearer ${cookies.token}` },
         })
             .then((res) => res.json())
@@ -87,7 +89,7 @@ export default function ViewProducts() {
             }
 
 
-            const res = await fetch(`http://localhost:3005/api/products/admin/${id}`, {
+            const res = await fetch(`${API_URL}/api/products/admin/${id}`, {
                 method: "PUT",
                 headers: {
 
@@ -123,7 +125,7 @@ export default function ViewProducts() {
         setActionLoading(variantId);
         try {
             const res = await fetch(
-                `http://localhost:3005/api/products/admin/${productId}/variant/${variantId}`,
+                `${API_URL}/api/products/admin/${productId}/variant/${variantId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -168,7 +170,7 @@ export default function ViewProducts() {
     const handleDeleteProduct = async (id: string) => {
         setActionLoading(id);
         try {
-            const res = await fetch(`http://localhost:3005/api/products/admin/${id}`, {
+            const res = await fetch(`${API_URL}/api/products/admin/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${cookies.token}` },
             });
@@ -191,7 +193,7 @@ export default function ViewProducts() {
         setActionLoading(variantId);
         try {
             const res = await fetch(
-                `http://localhost:3005/api/products/admin/${productId}/variant/${variantId}`,
+                `${API_URL}/api/products/admin/${productId}/variant/${variantId}`,
                 {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${cookies.token}` },
