@@ -54,7 +54,7 @@ export function AdminLogin() {
                 })
                 .catch((error) => {
                     console.error("Login failed:", error);
-                    toast.error("Invalid credentials. Please try again.");
+                    toast.error(error.message || "Invalid credentials. Please try again.");
 
                 });
 
