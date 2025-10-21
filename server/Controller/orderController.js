@@ -71,6 +71,70 @@ const requestReturn = asyncHandler(async (req, res) => {
   res.json({ message: "Return request submitted", order });
 });
 
+// ✅ Cancel Order by user
+const Razorpay = require("razorpay");
+
+const cancelOrder = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const orderId = req.params.id;
+
+  const order = await Order.findOne({ _id: orderId, user: userId });
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  // Only allow cancel if order is NOT shipped or delivered
+  if (
+    ["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)
+  ) {
+    res.status(400);
+    throw new Error(
+      `Order cannot be cancelled. Current status: ${order.status}`
+    );
+  }
+
+  // Refund for online payments
+  if (order.paymentType === "Online" && order.razorpayPaymentId) {
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_SECRET,
+    });
+
+    try {
+      const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
+        amount: order.totalAmount * 100, // paise
+      });
+      order.paymentStatus = "Refunded";
+      order.refundId = refund.id; // optional
+    } catch (err) {
+      console.error("Refund failed:", err);
+      res.status(500);
+      throw new Error("Refund failed. Contact support.");
+    }
+  } else {
+    order.paymentStatus = order.paymentType === "COD" ? "Pending" : "Refunded";
+  }
+
+  // Cancel the order
+  order.status = "Cancelled";
+
+  // Restock products
+  for (const item of order.products) {
+    const product = await Product.findById(item.product);
+    if (!product) continue;
+
+    const variant = product.variants.id(item.variantId);
+    if (variant) {
+      variant.stock += item.quantity;
+      await product.save();
+    }
+  }
+
+  await order.save();
+  res.json({ message: "Order cancelled successfully", order });
+});
+
 // ---------------------- ADMIN CONTROLLERS ---------------------- //
 
 // ✅ Get all orders
@@ -80,7 +144,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
     .populate("products.product", "name category images variants")
     .sort({ createdAt: -1 });
 
-  res.json(orders);
+  res.json(Array.isArray(orders) ? orders : []);
 });
 
 // ✅ Get single order by admin
@@ -109,7 +173,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   }
 
   order.status = status;
-  if (status === "Delivered") order.deliveredAt = deliveredAt || new Date();
+  if (status === "Delivered") {
+    order.deliveredAt = deliveredAt || new Date();
+    // ✅ If COD order, mark payment as completed on delivery
+    if (order.paymentType === "COD") {
+      order.paymentStatus = "Paid";
+    }
+  }
+  order.deliveredAt = deliveredAt || new Date();
 
   await order.save();
   res.json({ message: "Order status updated", order });
@@ -142,6 +213,7 @@ module.exports = {
   getUserOrders,
   getUserOrder,
   requestReturn,
+  cancelOrder,
   getAllOrders,
   getOrderById,
   updateOrderStatus,

@@ -9,12 +9,14 @@ const {
   getOrderById,
   updateOrderStatus,
   handleReturnRequest,
+  cancelOrder,
 } = require("../Controller/orderController");
 
 // ---------------------- USER ROUTES ---------------------- //
 router.get("/", protect, getUserOrders); // Get all orders for user
 router.get("/:id", protect, getUserOrder); // Get single order for user
 router.post("/:id/return", protect, requestReturn); // Request return
+router.post("/:id/cancel", protect, cancelOrder); // Cancel order
 
 // ---------------------- ADMIN ROUTES ---------------------- //
 router.get("/admin/all", protect, admin, getAllOrders); // Get all orders

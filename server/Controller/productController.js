@@ -20,8 +20,8 @@ function generateSKU(productName) {
 
 // CREATE PRODUCT WITH IMAGES
 const createProduct = asyncHandler(async (req, res) => {
-  console.log("Request body:", req.body);
-  console.log("Files:", req.files);
+ // console.log("Request body:", req.body);
+ // console.log("Files:", req.files);
 
   // --- Parse variants ---
   let variantsData = [];
@@ -147,12 +147,12 @@ const getApprovedProducts = asyncHandler(async (req, res) => {
 });
 
 const getProductById = asyncHandler(async (req, res) => {
-  console.log("Fetching product by ID:", req.params.id);
+//  console.log("Fetching product by ID:", req.params.id);
   const product = await Product.findOne({
     _id: req.params.id,
     isApproved: true,
   });
-  console.log("Fetched  single product :", product);
+ // console.log("Fetched  single product :", product);
   if (product) {
     res.json(product);
   } else {
@@ -216,9 +216,9 @@ const getAllProductsAdminView = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  console.log("request body", req.body);
-  console.log("files", req.files);
-  console.log("id =", req.params);
+  //console.log("request body", req.body);
+  //console.log("files", req.files);
+  //console.log("id =", req.params);
   const { id } = req.params;
   const product = await Product.findById(id);
   if (!product) {
@@ -280,7 +280,7 @@ const updateVariants = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid variants data format");
   }
-  console.log("==>>  ", variantsData);
+ // console.log("==>>  ", variantsData);
   if (!Array.isArray(variantsData)) {
     res.status(400);
     throw new Error("Variants should be an array");
@@ -361,12 +361,12 @@ const deleteVariant = asyncHandler(async (req, res) => {
 
   // ✅ If no variants remain, delete the product entirely
   if (product.variants.length === 0) {
-    console.log("No variants left, deleting product");
+   // console.log("No variants left, deleting product");
     await Product.findByIdAndDelete(productId);
 
     // Delete associated images from Cloudinary
-   const folderPath = `BlossomHoney/products/${product._id}`;
-   await deleteCloudinaryFolder(folderPath);
+    const folderPath = `BlossomHoney/products/${product._id}`;
+    await deleteCloudinaryFolder(folderPath);
 
     return res.status(200).json({
       message: "Last variant deleted — product also removed",
@@ -401,7 +401,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   await product.deleteOne();
 
- // Delete associated images from Cloudinary
+  // Delete associated images from Cloudinary
   const folderPath = `BlossomHoney/products/${product._id}`;
   await deleteCloudinaryFolder(folderPath);
 
@@ -428,6 +428,38 @@ const approveProduct = asyncHandler(async (req, res) => {
   });
 });
 
+// --- Fetch Products by Category ---
+const getProductsByCategory = asyncHandler(async (req, res) => {
+  const { categoryName } = req.params;
+  console.log("Fetching products for category:", categoryName);
+
+  // Validate category
+  const validCategories = [
+    "dry-fruits",
+    "honey",
+    "nuts-seeds",
+    "spices",
+    "other",
+  ];
+  if (!validCategories.includes(categoryName.toLowerCase().trim())) {
+    res.status(400);
+    throw new Error("Invalid category");
+  }
+
+  // Fetch products that match category and are approved
+  const products = await Product.find({
+    category: categoryName,
+    isApproved: true,
+  });
+
+  if (!products || products.length === 0) {
+    res.status(404);
+    throw new Error("No products found in this category");
+  }
+
+  res.status(200).json({ count: products.length, products });
+});
+
 module.exports = {
   getApprovedProducts,
   getProductById,
@@ -439,4 +471,5 @@ module.exports = {
   getAllProductsAdminView,
   updateVariants,
   deleteVariant,
+  getProductsByCategory,
 };

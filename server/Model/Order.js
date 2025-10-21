@@ -65,6 +65,9 @@ const orderSchema = new mongoose.Schema(
     },
     payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
 
+    razorpayPaymentId: { type: String, default: null },
+
+
     status: {
       type: String,
       enum: [

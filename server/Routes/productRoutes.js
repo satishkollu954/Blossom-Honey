@@ -6,6 +6,7 @@ const {
   getApprovedProducts,
   getProductById,
   createProductReview,
+  getProductsByCategory,
 } = require("../Controller/productController"); // Assuming your controller functions are here
 const { upload } = require("../Middleware/newmiddleware");
 // Assuming these middleware functions exist
@@ -21,6 +22,7 @@ const { createUploader } = require("../Middleware/uploadMiddleware");
 // Public routes
 router.get("/", getApprovedProducts);
 router.get("/product/:id", getProductById);
+router.get("/category/:categoryName", getProductsByCategory);
 
 // Protected routes
 router.post(

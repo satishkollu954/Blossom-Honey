@@ -16,6 +16,7 @@ const cartRoutes = require("./Routes/cartRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
 const orderRoutes = require("./Routes/orderRoutes");
 const couponRoutes = require("./Routes/couponRoutes");
+const advertisementRoutes = require("./Routes/advertisementRoutes");
 
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((origin) => origin.trim())
@@ -55,6 +56,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/advertisements", advertisementRoutes);
 
 // Optional: serve local uploads if needed
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));

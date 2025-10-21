@@ -347,7 +347,8 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
 
   // Payment successful
   order.paymentStatus = "Paid";
-  order.status = "Placed"; // can keep processing/shipped flow
+  order.status = "Placed";
+  order.razorpayPaymentId = razorpay_payment_id; // can keep processing/shipped flow
   await order.save();
   await markCouponUsed(req.user._id, cart.coupon);
 

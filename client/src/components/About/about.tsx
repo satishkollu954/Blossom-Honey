@@ -13,7 +13,6 @@ export function About() {
                         Crafting nature's finest honey with passion and dedication since 2020
                     </p>
                 </div>
-
                 {/* Description */}
                 <div className="prose prose-lg max-w-3xl mx-auto mb-16 text-gray-700">
                     <p className="leading-relaxed">

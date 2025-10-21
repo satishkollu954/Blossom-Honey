@@ -13,6 +13,9 @@ import ViewProducts from "../viewproducts/ViewProducts";
 import { useCookies } from "react-cookie";
 import UsersList from "../AllUsers/AllUsers";
 import CouponManager from "../CouponManager/CouponManager";
+import OrderForAdmin from "../Order/OrderForAdmin";
+import AdvertisementManager from "../Advertisement/Advertisement";
+
 
 export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState("upload");
@@ -48,7 +51,9 @@ export default function AdminDashboard() {
             case "coupon":
                 return <CouponManager />;
             case "orders":
-                return <div className="p-6">📑 View Orders Component Here</div>;
+                return <OrderForAdmin />;
+            case "advertisements":
+                return <AdvertisementManager />;
             default:
                 return <div className="p-6">Select an option from the sidebar.</div>;
         }
@@ -116,6 +121,19 @@ export default function AdminDashboard() {
                         <Users className="mr-3" size={18} />
                         Coupon Manage
                     </button>
+
+                    <button
+  onClick={() => handleMenuClick("advertisements")}
+  className={`flex items-center w-full px-4 py-2 text-left hover:bg-amber-100 transition ${
+    activeSection === "advertisements"
+      ? "bg-amber-100 text-amber-600 font-semibold"
+      : "text-gray-700"
+  }`}
+>
+  <Package className="mr-3" size={18} />
+  Advertisements
+</button>
+
 
                     <button
                         onClick={() => handleMenuClick("orders")}
