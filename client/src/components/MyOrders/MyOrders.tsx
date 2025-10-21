@@ -251,7 +251,7 @@ export function MyOrders() {
 
               {/* Actions */}
               <div className="mt-4 flex gap-3">
-                {["Pending", "Processing"].includes(order.status) && (
+                {["Pending", "Processing", "Placed"].includes(order.status) && (
                   <button
                     onClick={() => handleCancel(order._id)}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"

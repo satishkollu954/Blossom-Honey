@@ -26,7 +26,7 @@ const sendEmail = async ({ to, subject, html }) => {
     //   console.log("MAIL_PASS:", process.env.MAIL_PASS);
 
     const mailOptions = {
-      from: ` "FitFusion" <${process.env.MAIL_USER}>`,
+      from: ` "Blossom Honey" <${process.env.MAIL_USER}>`,
       to,
       subject,
       html,

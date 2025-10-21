@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Order = require("../Model/Order");
 const User = require("../Model/User");
 const Product = require("../Model/Product");
+const sendEmail = require("../utils/sendEmail");
 
 // ---------------------- USER CONTROLLERS ---------------------- //
 
@@ -164,9 +165,10 @@ const getOrderById = asyncHandler(async (req, res) => {
 // ✅ Update order status
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
-  const { status, deliveredAt } = req.body; // status: Processing, Shipped, Delivered, Cancelled, Returned
+  const { status, deliveredAt } = req.body;
 
-  const order = await Order.findById(orderId);
+  // ✅ Fetch order with user info for email
+  const order = await Order.findById(orderId).populate("user", "name email");
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
@@ -175,15 +177,117 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   order.status = status;
   if (status === "Delivered") {
     order.deliveredAt = deliveredAt || new Date();
-    // ✅ If COD order, mark payment as completed on delivery
     if (order.paymentType === "COD") {
       order.paymentStatus = "Paid";
     }
   }
-  order.deliveredAt = deliveredAt || new Date();
 
   await order.save();
-  res.json({ message: "Order status updated", order });
+
+  // ✅ Build professional HTML email
+  const emailHtml = `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fffaf4; padding: 30px; border-radius: 10px; max-width: 600px; margin: 20px auto; border: 1px solid #f3e2c0;">
+    <div style="text-align: center;">
+      <img src="https://i.ibb.co/2hvR0nq/honey-logo.png" alt="Blossom Honey" style="width: 120px; margin-bottom: 10px;" />
+      <h2 style="color: #d97706; margin-bottom: 0;">Blossom Honey</h2>
+      <p style="color: #555; font-size: 15px;">Pure • Natural • Organic</p>
+    </div>
+
+    <div style="background: #fff; border-radius: 10px; padding: 25px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+      <h3 style="color: #333; text-align: center;">Order Status Update</h3>
+      <p style="font-size: 16px; color: #555;">
+        Hello <strong>${order.user.name || "Customer"}</strong>,
+      </p>
+      <p style="font-size: 15px; color: #555;">
+        We wanted to let you know that the status of your order 
+        <strong>#${order._id
+          .toString()
+          .slice(-6)
+          .toUpperCase()}</strong> has been updated.
+      </p>
+
+      <div style="text-align: center; margin: 25px 0;">
+        <span style="
+          background-color: ${
+            status === "Delivered"
+              ? "#16a34a"
+              : status === "Shipped"
+              ? "#2563eb"
+              : status === "Processing"
+              ? "#f59e0b"
+              : status === "Cancelled"
+              ? "#dc2626"
+              : "#7c3aed"
+          };
+          color: white;
+          padding: 10px 20px;
+          border-radius: 25px;
+          font-weight: bold;
+          font-size: 16px;
+        ">
+          ${status.toUpperCase()}
+        </span>
+      </div>
+
+      ${
+        status === "Delivered"
+          ? `<p style="font-size: 15px; color: #555; text-align: center;">
+              Your package has been successfully delivered! We hope you enjoy your purchase.<br/>
+              Thank you for choosing <strong>Blossom Honey</strong> 🌸
+            </p>`
+          : status === "Shipped"
+          ? `<p style="font-size: 15px; color: #555; text-align: center;">
+              Great news! Your order is on its way 🚚<br/>
+              You’ll receive it soon at your registered address.
+            </p>`
+          : status === "Processing"
+          ? `<p style="font-size: 15px; color: #555; text-align: center;">
+              Your order is currently being processed 🍯<br/>
+              We’ll notify you once it’s shipped!
+            </p>`
+          : status === "Cancelled"
+          ? `<p style="font-size: 15px; color: #555; text-align: center;">
+              Your order has been cancelled. If you didn’t request this, please reach out to our support.
+            </p>`
+          : status === "Returned"
+          ? `<p style="font-size: 15px; color: #555; text-align: center;">
+              Your return has been successfully processed. We appreciate your patience.
+            </p>`
+          : ""
+      }
+
+      <hr style="margin: 25px 0; border: none; border-top: 1px solid #f3e2c0;">
+
+      <p style="font-size: 14px; text-align: center; color: #777;">
+        Need help? Contact us at <a href="mailto:support@blossomhoney.com" style="color: #d97706; text-decoration: none;">support@blossomhoney.com</a><br/>
+        or call us at <strong>+91 8144513380</strong>
+      </p>
+
+      <div style="text-align: center; margin-top: 25px;">
+        <a href="http://localhost:5174" 
+          style="background-color: #d97706; color: white; padding: 10px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+          View Your Order
+        </a>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">
+      &copy; ${new Date().getFullYear()} Blossom Honey. All rights reserved.
+    </p>
+  </div>
+  `;
+
+  // ✅ Send email
+  await sendEmail({
+    to: order.user.email,
+    subject: `Order ${status} - Blossom Honey`,
+    html: emailHtml,
+  });
+
+  res.json({
+    message: "Order status updated and email sent successfully",
+    order,
+  });
 });
 
 // ✅ Approve/Reject Return Request
