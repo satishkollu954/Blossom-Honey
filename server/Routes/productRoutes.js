@@ -7,6 +7,7 @@ const {
   getProductById,
   createProductReview,
   getProductsByCategory,
+  getProductReviews
 } = require("../Controller/productController"); // Assuming your controller functions are here
 const { upload } = require("../Middleware/newmiddleware");
 // Assuming these middleware functions exist
@@ -29,10 +30,11 @@ router.post(
   "/:id/reviews",
   protect,
   upload.fields([
-    { name: "productImages", maxCount: 10 },
+    { name: "reviewImages", maxCount: 10 },
     { name: "variantImages", maxCount: 20 },
   ]), // review images
   createProductReview
 );
+router.get("/:id/reviews", getProductReviews);
 
 module.exports = router;
