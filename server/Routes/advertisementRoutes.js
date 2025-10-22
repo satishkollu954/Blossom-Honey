@@ -7,6 +7,7 @@ const {
   getAdvertisementById,
   updateAdvertisement,
   deleteAdvertisement,
+  getActiveAdvertisementsForUser,
 } = require("../Controller/advertisementController");
 const { protect, admin } = require("../Middleware/authMiddleware");
 const multer = require("multer");
@@ -25,6 +26,10 @@ router.post(
 );
 router.get("/", protect, admin, getAllAdvertisements);
 router.get("/:id", protect, admin, getAdvertisementById);
+
+// ✅ USER Route (public)
+router.get("/user", getActiveAdvertisementsForUser);
+
 router.put(
   "/:id",
   protect,
