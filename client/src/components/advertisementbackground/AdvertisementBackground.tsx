@@ -61,7 +61,7 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     opacity: 0.15,
-                        zIndex: -1,             // ✅ Keep it behind navbar content
+                    zIndex: -1,             // ✅ Keep it behind navbar content
                     pointerEvents: "none",
                 }}
             />
@@ -69,17 +69,17 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
     }
 
     return (
-      <div
-        className="absolute inset-0 z-0 transition-all duration-700 ease-in-out"
-        style={{
-          backgroundImage: `url(${currentImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.95,
-             zIndex: -1,             // ✅ Keep it behind navbar content
-            pointerEvents: "none",
-        }}
-      />
+        <div
+            className="absolute inset-0 z-0 transition-all duration-700 ease-in-out"
+            style={{
+                backgroundImage: `url(${currentImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: 0.99,
+                zIndex: -1,             // ✅ Keep it behind navbar content
+                pointerEvents: "none",
+            }}
+        />
     );
 };
 
