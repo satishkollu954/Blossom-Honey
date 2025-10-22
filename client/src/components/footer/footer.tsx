@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";

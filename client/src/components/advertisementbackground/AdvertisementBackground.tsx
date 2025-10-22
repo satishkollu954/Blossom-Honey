@@ -19,86 +19,77 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
   const [allImages, setAllImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentAd, setCurrentAd] = useState<Advertisement | null>(null);
+  const [visible, setVisible] = useState(false);
   const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-  // 🔹 Fetch all ads for this position
+  // 🔹 Fetch all ads by position
   useEffect(() => {
     const fetchAds = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/advertisements/active`, {
           params: { position },
         });
-
         const ads: Advertisement[] = res.data.advertisements || res.data || [];
-        console.log(`Fetched ${position} ads:`, ads);
-
         if (ads.length > 0) {
-          const images: string[] = ads.flatMap((ad) => ad.images);
-          setAllImages(images);
+          setAllImages(ads.flatMap((ad) => ad.images));
           setCurrentAd(ads[0]);
         }
       } catch (err) {
-        console.error(`Failed to fetch ${position} advertisement`, err);
+        console.error(`Failed to fetch ${position} ads`, err);
       }
     };
-
     fetchAds();
   }, [position]);
 
-  // 🔹 Auto image rotation (for all ads)
+  // 🔹 Show popup **only on full page refresh**
+useEffect(() => {
+  if (!currentAd) return;
+
+  const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  const isFullReload = navEntry?.type === "reload";
+
+  const sessionKey = `popup_session_${currentAd._id}`;
+  const alreadyShown = sessionStorage.getItem(sessionKey);
+
+  if (isFullReload && !alreadyShown) {
+    setVisible(true);
+    sessionStorage.setItem(sessionKey, "true");
+  }
+}, [currentAd]);
+
+
+  const handleClose = () => {
+    setVisible(false);
+  };
+
+  // 🔹 Auto image rotation
   useEffect(() => {
     if (allImages.length <= 1) return;
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % allImages.length);
     }, 4000);
-
     return () => clearInterval(interval);
   }, [allImages]);
- const [visible, setVisible] = useState<boolean>(() => {
-  // Check localStorage if the popup for this ad has been seen
-  if (typeof window !== "undefined" && currentAd?._id) {
-    return !localStorage.getItem(`popup_seen_${currentAd._id}`);
-  }
-  return true;
-});
 
-// When user closes the popup
-const handleClose = () => {
-  setVisible(false);
-  if (currentAd?._id) {
-    localStorage.setItem(`popup_seen_${currentAd._id}`, "true");
-  }
-};
-
-  if (allImages.length === 0 || !currentAd) return null;
-
+  if (!currentAd || allImages.length === 0) return null;
   const currentImage = allImages[currentIndex];
-  const backgroundStyle: React.CSSProperties = {
-    backgroundImage: `url(${currentImage})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    transition: "background-image 0.8s ease-in-out",
-  };
-    
 
-  // 🔹 Layouts per position
   switch (position) {
-    /** 🔸 NAVBAR BACKGROUND */
     case "navbar":
       return (
         <div
           className="absolute inset-0 transition-all duration-700 ease-in-out"
           style={{
-            ...backgroundStyle,
+            backgroundImage: `url(${currentImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
             opacity: 0.15,
             zIndex: -1,
-            pointerEvents: "none", // ✅ So navbar buttons still clickable
+            pointerEvents: "none",
           }}
         />
       );
 
-    /** 🔸 HOMEPAGE HERO SLIDER */
     case "homepage":
       return (
         <div className="relative w-full h-[500px] overflow-hidden rounded-lg shadow-xl">
@@ -130,7 +121,6 @@ const handleClose = () => {
         </div>
       );
 
-    /** 🔸 BANNER STYLE */
     case "banner":
       return (
         <div className="relative w-full h-[200px] overflow-hidden shadow-lg rounded-md my-3">
@@ -155,7 +145,6 @@ const handleClose = () => {
         </div>
       );
 
-    /** 🔸 SIDEBAR CARD STYLE */
     case "sidebar":
       return (
         <div className="sticky top-4 bg-white shadow-md rounded-lg overflow-hidden">
@@ -169,7 +158,9 @@ const handleClose = () => {
               {currentAd.title}
             </h4>
             {currentAd.description && (
-              <p className="text-sm text-gray-500 mt-1">{currentAd.description}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {currentAd.description}
+              </p>
             )}
             {currentAd.link && (
               <a
@@ -185,62 +176,53 @@ const handleClose = () => {
         </div>
       );
 
-    /** 🔸 POPUP MODAL STYLE */
- case "popup":
+    case "popup":
+      if (!visible) return null;
 
-  if (!visible) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative w-80 bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
+              title="Close"
+            >
+              ✖
+            </button>
 
-return (
-  <div className="fixed inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
-    {/* 🔹 Backdrop */}
-    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+            {currentImage && (
+              <div className="relative h-48">
+                <img
+                  src={currentImage}
+                  alt={currentAd.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              </div>
+            )}
 
-    {/* 🔹 Popup Container */}
-    <div className="relative w-80  bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
-      {/* 🔹 Close Button */}
-      <button
-        onClick={() => setVisible(false)}
-        className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
-        title="Close"
-      >
-        ✖
-      </button>
-
-      {/* 🔹 Image */}
-      {currentImage && (
-        <div className="relative h-48">
-          <img
-            src={currentImage}
-            alt={currentAd?.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <div className="p-4 text-left">
+              {currentAd.description && (
+                <p className="font-bold text-red-700 mb-3 uppercase tracking-wide text-lg drop-shadow-sm">
+                  {currentAd.description}
+                </p>
+              )}
+              {currentAd.link && (
+                <a
+                  href={currentAd.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-medium shadow-sm transition"
+                >
+                  Visit
+                </a>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      );
 
-      {/* 🔹 Content */}
-      <div className="p-4 text-left">
-        {currentAd?.description && (
-          <p className="text-sm text-red-700  mb-3">{currentAd.description.toUpperCase()}</p>
-        )}
-        {currentAd?.link && (
-          <a
-            href={currentAd.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-medium shadow-sm transition"
-          >
-            Visit
-          </a>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
-
-
-    /** 🔸 FOOTER BACKGROUND STYLE */
     case "footer":
       return (
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
