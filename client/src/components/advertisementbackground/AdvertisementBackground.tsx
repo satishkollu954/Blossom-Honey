@@ -182,14 +182,14 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
                     <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
                     {/* 🔹 Popup Container */}
-                    <div className="relative w-50  bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+                    <div className="relative w-75  bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
                         {/* 🔹 Close Button */}
                         <button
                             onClick={() => setVisible(false)}
-                            className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
+                            className="absolute top-3 right-3 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
                             title="Close"
                         >
-                            ✖
+                            <span className="text-black">✖</span>
                         </button>
 
                         {/* 🔹 Image */}
@@ -207,7 +207,10 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
                         {/* 🔹 Content */}
                         <div className="p-4 text-left">
                             {currentAd?.description && (
-                                <p className="text-sm text-red-700  mb-3">{currentAd.description.toUpperCase()}</p>
+                                <p className="font-bold text-red-700 mb-3 uppercase tracking-wide text-lg drop-shadow-sm">
+                                    {currentAd.description}
+                                </p>
+
                             )}
                             {currentAd?.link && (
                                 <a
