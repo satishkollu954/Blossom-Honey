@@ -28,10 +28,6 @@ import OrderForAdmin from "./components/Order/OrderForAdmin";
 
 
 
-
-
-
-
 function App() {
   return (
     <>
@@ -48,6 +44,7 @@ function App() {
           <Route path="/ourstory" element={<HoneyStory />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+
 
 
 

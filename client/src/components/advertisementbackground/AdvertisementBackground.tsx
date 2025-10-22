@@ -17,7 +17,7 @@ const AdvertisementBackground: React.FC<{ position: "navbar" | "footer" }> = ({ 
     useEffect(() => {
         const fetchAd = async () => {
             try {
-                const res = await axios.get(`${API_URL}/api/advertisements`, {
+                const res = await axios.get(`${API_URL}/api/advertisements/user`, {
                     params: { activeOnly: "true", position },
                 });
                 if (res.data.length > 0) {
