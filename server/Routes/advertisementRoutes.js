@@ -16,7 +16,6 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const { upload } = require("../Middleware/newmiddleware");
 
-router.get("/user", getActiveAdvertisementsForUser);
 // ✅ Routes
 router.post(
   "/",
