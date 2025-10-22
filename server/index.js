@@ -37,6 +37,7 @@ app.use(
 const {
   startDeliveryTrackingJob,
 } = require("../server/utils/shiprocketTracker");
+const { getActiveAdvertisementsForUser } = require("./Controller/advertisementController");
 
 // Start the cron job
 startDeliveryTrackingJob();
@@ -57,6 +58,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/advertisements", advertisementRoutes);
+//app.use("/api/advertisements/user", getActiveAdvertisementsForUser);
 
 // Optional: serve local uploads if needed
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
