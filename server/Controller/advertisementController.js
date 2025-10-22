@@ -101,7 +101,6 @@ const getActiveAdvertisementsForUser = asyncHandler(async (req, res) => {
   });
 });
 
-
 // --- UPDATE Advertisement ---
 const updateAdvertisement = asyncHandler(async (req, res) => {
   const ad = await Advertisement.findById(req.params.id);
@@ -163,4 +162,5 @@ module.exports = {
   getAdvertisementById,
   updateAdvertisement,
   deleteAdvertisement,
+  getActiveAdvertisementsForUser,
 };
