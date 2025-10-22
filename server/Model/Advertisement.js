@@ -9,7 +9,7 @@ const advertisementSchema = new mongoose.Schema(
     link: { type: String, trim: true }, // optional redirect link (e.g., product, offer)
     position: {
       type: String,
-      enum: ["homepage", "sidebar", "banner", "popup", "footer"],
+      enum: ["homepage", "sidebar", "banner", "popup", "footer", "navbar"],
       default: "homepage",
     },
     startDate: { type: Date },

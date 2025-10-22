@@ -21,7 +21,22 @@ interface Product {
   images: string[];
   deliveryTime: string;
   shippingCharge: number;
+
+  // 👇 Add these fields from your MongoDB schema
+  ratings?: {
+    average: number;
+    count: number;
+  };
+
+  reviews?: {
+    _id?: string;
+    username?: string;
+    rating?: number;
+    comment?: string;
+    images?: string[];
+  }[];
 }
+
 
 const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
   const navigate = useNavigate();
@@ -30,6 +45,11 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
     product.images?.[0] ||
     firstVariant?.images?.[0] ||
     "https://via.placeholder.com/300x300?text=No+Image";
+
+  // Extract rating info
+  const avgRating = product.ratings?.average || 0;
+  const totalRatings = product.ratings?.count || 0;
+  const totalReviews = product.reviews?.length || 0;
 
   return (
     <div
@@ -43,21 +63,34 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
           className="max-h-full max-w-full object-contain"
         />
       </div>
+
       <div className="text-center px-4 pb-4 w-full">
         <h3 className="font-serif text-xl text-gray-800 mb-2 font-normal">
           {product.name}
         </h3>
-        <p className="text-gray-600 text-sm mb-3 min-h-[40px]">
-          {product.description || "No description available."}
-        </p>
+
+        {/* ⭐ Rating Badge Section */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          {
+            <span className="bg-gray-400 text-white px-1 py-1 rounded-md text-sm font-semibold flex items-center gap-1">
+              ⭐ {avgRating.toFixed(1)}
+            </span>
+          }
+          <span className="text-gray-500 text-sm">
+            ({totalRatings} ratings, {totalReviews} reviews)
+          </span>
+        </div>
+
         <p className="font-bold text-2xl text-yellow-600 mb-3">
           ₹{firstVariant?.finalPrice ?? 0}
         </p>
+
         {firstVariant?.discount > 0 && (
           <p className="text-gray-400 text-sm line-through mb-2">
             ₹{firstVariant.price}
           </p>
         )}
+
         <button className="bg-yellow-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-yellow-600 transition-colors w-full">
           View Details
         </button>
@@ -65,6 +98,7 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
     </div>
   );
 };
+
 
 const Shop: React.FC = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);

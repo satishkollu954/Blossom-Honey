@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { User, Mail, Lock, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 
 
 
@@ -50,14 +50,13 @@ export function UserRegister() {
             axios.post(`${API_URL}/api/auth/signup`, { name, email, password })
                 .then((response) => {
                     setIsLoading(false);
-
-                    alert('Registration Successful! Please log in.');
+                    toast.success('Registration Successful! Please log in.');
                     navigate('/login'); // Redirect to login page
                 })
                 .catch((error) => {
                     setIsLoading(false);
                     console.error('Registration failed:', error.message);
-                    alert(`${error.response?.data?.message || error.message}`); // Simple failure message
+                    toast.error(`${error.response?.data?.message || error.message}`); // Simple failure message
                 });
         },
     });
