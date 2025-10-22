@@ -67,16 +67,17 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
     }
 
     return (
-        <div className="w-full text-center my-3 relative">
-            <a href={ad.link || "#"} target="_blank" rel="noopener noreferrer">
-                <img
-                    key={currentImage} // helps trigger re-render on change
-                    src={currentImage}
-                    alt={ad.title}
-                    className="mx-auto rounded-lg shadow-md max-h-40 object-contain transition-opacity duration-700 ease-in-out opacity-100"
-                />
-            </a>
-        </div>
+      <div
+        className="absolute inset-0 z-0 transition-all duration-700 ease-in-out"
+        style={{
+          backgroundImage: `url(${currentImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.15,
+             zIndex: -1,             // ✅ Keep it behind navbar content
+        pointerEvents: "none",
+        }}
+      />
     );
 };
 

@@ -40,6 +40,7 @@ export function Navbar() {
 
     return (
         <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-200 shadow-sm">
+           <AdvertisementRenderer position="navbar" type="background" />
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
               
                 <div className="flex items-center justify-between h-16">
@@ -51,7 +52,7 @@ export function Navbar() {
                         </span>
                     </Link>
 
-                      <AdvertisementRenderer position="navbar" type="background" />
+                     
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-8">
