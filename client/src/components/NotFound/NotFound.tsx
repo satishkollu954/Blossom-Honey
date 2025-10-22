@@ -1,10 +1,17 @@
-export function NotFound() {
+import Lottie from "lottie-react";
+import notFoundAnimation from "../../animations/notfound.json";
+
+export default function NotFound() {
     return (
-        <div className="flex flex-col items-center justify-center h-[70vh] text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">404 - Page Not Found</h1>
-            <p className="text-lg text-gray-600">
-                Sorry, the page you are looking for doesn’t exist.
-            </p>
+        <div className="w-screen h-screen flex flex-col items-center justify-center bg-gray-100 overflow-x-hidden px-4">
+            <div className="w-full max-w-md sm:max-w-lg">
+                <Lottie
+                    animationData={notFoundAnimation}
+                    loop={true}
+                    className="w-full h-auto"
+                />
+            </div>
+
         </div>
     );
 }
