@@ -55,7 +55,21 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
 
     return () => clearInterval(interval);
   }, [allImages]);
-  const [visible, setVisible] = useState(true);
+ const [visible, setVisible] = useState<boolean>(() => {
+  // Check localStorage if the popup for this ad has been seen
+  if (typeof window !== "undefined" && currentAd?._id) {
+    return !localStorage.getItem(`popup_seen_${currentAd._id}`);
+  }
+  return true;
+});
+
+// When user closes the popup
+const handleClose = () => {
+  setVisible(false);
+  if (currentAd?._id) {
+    localStorage.setItem(`popup_seen_${currentAd._id}`, "true");
+  }
+};
 
   if (allImages.length === 0 || !currentAd) return null;
 
@@ -182,7 +196,7 @@ return (
     <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
     {/* 🔹 Popup Container */}
-    <div className="relative w-50  bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+    <div className="relative w-80  bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
       {/* 🔹 Close Button */}
       <button
         onClick={() => setVisible(false)}
