@@ -3,6 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
 import { useCookies } from "react-cookie";
 import { useCart } from "../context/cartcontext";
+import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
 
 
 export function Navbar() {
@@ -40,6 +41,7 @@ export function Navbar() {
     return (
         <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-200 shadow-sm">
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+              
                 <div className="flex items-center justify-between h-16">
 
                     {/* Logo */}
@@ -48,6 +50,8 @@ export function Navbar() {
                             Blossom Honey
                         </span>
                     </Link>
+
+                      <AdvertisementRenderer position="navbar" type="background" />
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-8">

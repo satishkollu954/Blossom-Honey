@@ -19,6 +19,8 @@ export function Main(): JSX.Element {
     return (
         <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
             {/* Background */}
+
+          
             <div
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${backgroundImage})` }}

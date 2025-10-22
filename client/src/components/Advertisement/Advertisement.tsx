@@ -25,7 +25,7 @@ export default function AdvertisementManager() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const positions = ["homepage", "sidebar", "banner", "popup", "footer"];
+  const positions = ["homepage", "sidebar", "banner", "popup", "footer", "navbar"];
 
   const API_URL = import.meta.env.VITE_API_BASE_URL;
 
