@@ -73,6 +73,35 @@ const getAdvertisementById = asyncHandler(async (req, res) => {
   res.json(ad);
 });
 
+// --- GET Active Advertisements for Users ---
+const getActiveAdvertisementsForUser = asyncHandler(async (req, res) => {
+  const { position } = req.query; // optional filter: homepage, banner, etc.
+  const today = new Date();
+
+  const filter = {
+    isActive: true,
+    $or: [
+      { startDate: { $lte: today }, endDate: { $gte: today } }, // between start and end
+      { startDate: { $exists: false } }, // no start date
+      { endDate: { $exists: false } }, // no end date
+    ],
+  };
+
+  if (position) filter.position = position;
+
+  const ads = await Advertisement.find(filter)
+    .sort({ createdAt: -1 })
+    .select("title description images link position");
+
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    count: ads.length,
+    advertisements: ads,
+  });
+});
+
+
 // --- UPDATE Advertisement ---
 const updateAdvertisement = asyncHandler(async (req, res) => {
   const ad = await Advertisement.findById(req.params.id);
