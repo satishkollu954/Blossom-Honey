@@ -82,15 +82,15 @@ export function FeaturedProducts() {
                                         />
                                     </div>
                                     <div className="p-2 sm:p-3 flex flex-col flex-grow">
-                                        <h3 className="text-md sm:text-lg font-semibold text-gray-800 line-clamp-1">
+                                        <h3 className="text-md text-center sm:text-lg font-semibold text-gray-800 line-clamp-1">
                                             {item.name}
                                         </h3>
                                         {/* <p className="text-sm text-gray-500 line-clamp-2">
                                             {item.description}
                                         </p> */}
-                                        <p className="text-md font-bold text-amber-600 mt-auto">
+                                        {/* <p className="text-md font-bold text-amber-600 mt-auto">
                                             ₹{item.variants?.[0]?.finalPrice || "N/A"}
-                                        </p>
+                                        </p> */}
                                     </div>
                                 </div>
                             </div>

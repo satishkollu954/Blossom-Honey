@@ -3,6 +3,7 @@ import backgroundImage from "../../assets/home-bg.png";
 import type { JSX } from "react/jsx-runtime";
 
 import { useNavigate } from "react-router-dom";
+import BeeAnimation from "../BeeAnimation/BeeAnimation";
 
 export function Main(): JSX.Element {
 
@@ -19,8 +20,8 @@ export function Main(): JSX.Element {
     return (
         <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
             {/* Background */}
+            <BeeAnimation />
 
-          
             <div
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${backgroundImage})` }}

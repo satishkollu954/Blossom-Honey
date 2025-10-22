@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PlayCircle } from "lucide-react";
+import BeeAnimation from "../BeeAnimation/BeeAnimation";
 
 interface Farmer {
     id: string;
@@ -60,6 +61,7 @@ export default function HoneyStory() {
 
     return (
         <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-16">
+            <BeeAnimation />
             {/* Introduction Section */}
             <section className="text-center space-y-4">
                 <h1 className="text-4xl md:text-5xl font-bold text-amber-700">

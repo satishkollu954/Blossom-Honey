@@ -155,9 +155,9 @@ export function Navbar() {
 
                     {/* Mobile Right Section */}
                     <div className="flex items-center space-x-4">
-                        <button className="p-2 rounded-full hover:bg-gray-100 transition" aria-label="Toggle dark mode">
+                        {/* <button className="p-2 rounded-full hover:bg-gray-100 transition" aria-label="Toggle dark mode">
                             <Moon size={20} className="text-gray-800" />
-                        </button>
+                        </button> */}
                         <button
                             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition"
                             onClick={toggleMenu}

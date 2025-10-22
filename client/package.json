@@ -25,6 +25,7 @@
     "formik": "^2.4.6",
     "framer-motion": "^12.23.22",
     "input-otp": "^1.4.2",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.545.0",
     "memorystore": "^1.6.7",
     "moment": "^2.30.1",
