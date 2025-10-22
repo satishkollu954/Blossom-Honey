@@ -61,6 +61,8 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: 0.15,
+             zIndex: -1,             // ✅ Keep it behind navbar content
+        pointerEvents: "none",
         }}
       />
     );
