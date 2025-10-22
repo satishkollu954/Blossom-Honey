@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
 
 interface Advertisement {
     _id: string;
@@ -16,8 +17,8 @@ export function Footer() {
     useEffect(() => {
         const fetchAd = async () => {
             try {
-                const res = await axios.get(`${API_URL}/api/advertisements`, {
-                    params: { activeOnly: "true", position: "footer" },
+                const res = await axios.get(`${API_URL}/api/advertisements/active`, {
+                    params: {  position: "footer" },
                 });
                 if (res.data.length > 0) setAd(res.data[0]); // take first ad
             } catch (err) {
@@ -30,17 +31,8 @@ export function Footer() {
     return (
         <footer className="relative bg-[#F5F4F3] border-t border-gray-200 overflow-hidden">
             {/* Advertisement background */}
-            {ad && ad.images.length > 0 && (
-                <div
-                    className="absolute inset-0 z-0"
-                    style={{
-                        backgroundImage: `url(${ad.images[0]})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        opacity: 0.1, // adjust transparency
-                    }}
-                />
-            )}
+           <AdvertisementRenderer position="footer" type="background" />
+
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
