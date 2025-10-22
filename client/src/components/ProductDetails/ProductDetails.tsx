@@ -426,7 +426,7 @@ const ProductDetails: React.FC = () => {
                         {sameCategoryProducts.map((p) => (
                             <div
                                 key={p._id}
-                                className="min-w-[200px] border rounded-lg shadow-md p-3 flex-shrink-0 cursor-pointer hover:shadow-xl transition snap-start"
+                                className="min-w-[200px]  rounded-lg shadow-md p-3 flex-shrink-0 cursor-pointer hover:shadow-xl transition snap-start"
                                 onClick={() => navigate(`/product/${p._id}`)}
                             >
                                 <img
@@ -476,7 +476,7 @@ const ProductDetails: React.FC = () => {
                     {displayProducts.map((p) => (
                         <div
                             key={p._id}
-                            className="border rounded-lg shadow-md p-3 cursor-pointer hover:shadow-xl transition"
+                            className=" rounded-lg shadow-md p-3 cursor-pointer hover:shadow-xl transition"
                             onClick={() => navigate(`/product/${p._id}`)}
                         >
                             <img src={p.images?.[0] || "https://via.placeholder.com/200"} alt={p.name} className="w-full h-40 object-cover rounded-md mb-2" />

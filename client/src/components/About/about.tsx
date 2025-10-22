@@ -1,8 +1,10 @@
 import { Heart, Leaf, Award } from "lucide-react";
+import BeeAnimation from "../BeeAnimation/BeeAnimation";
 
 export function About() {
     return (
         <div className="min-h-screen py-16 md:py-24 bg-gray-50">
+            <BeeAnimation />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Heading */}
                 <div className="text-center mb-16">
