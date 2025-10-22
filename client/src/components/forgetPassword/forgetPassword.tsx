@@ -28,6 +28,8 @@ export function ForgetPassword() {
     const [newPassword, setNewPassword] = useState<string>("");
     const navigate = useNavigate();
     const [isOtpLoading, setIsOtpLoading] = useState<boolean>(false);
+    const [isOtpVerifying, setIsOtpVerifying] = useState<boolean>(false);
+
     const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -65,14 +67,13 @@ export function ForgetPassword() {
             setIsOtpLoading(false);
         }
     };
-
     const handleVerifyOtp = async (): Promise<void> => {
         if (!otp) {
             toast.error("Please enter the OTP");
             return;
         }
 
-        setIsOtpLoading(true);
+        setIsOtpVerifying(true); // 👈 use the new state
 
         try {
             await axios.post(`${API_URL}/api/auth/verify-otp`, {
@@ -88,7 +89,7 @@ export function ForgetPassword() {
                 : "An unexpected error occurred.";
             toast.error(errorMessage);
         } finally {
-            setIsOtpLoading(false);
+            setIsOtpVerifying(false); // 👈 reset verify state only
         }
     };
 
@@ -205,19 +206,20 @@ export function ForgetPassword() {
                                 <button
                                     type="button"
                                     className={`px-4 py-2 rounded-lg font-semibold text-white transition flex items-center justify-center whitespace-nowrap
-                                        ${isOtpLoading
+        ${isOtpVerifying
                                             ? 'bg-gray-400 cursor-not-allowed'
                                             : 'bg-green-600 hover:bg-green-700'
                                         }`}
                                     onClick={handleVerifyOtp}
-                                    disabled={isOtpLoading || otp.length < 4}
+                                    disabled={isOtpVerifying || otp.length < 4}
                                 >
-                                    {isOtpLoading ? (
+                                    {isOtpVerifying ? (
                                         <Loader2 className="animate-spin h-5 w-5" />
                                     ) : (
                                         "Verify"
                                     )}
                                 </button>
+
                             </div>
                         </div>
                     )}

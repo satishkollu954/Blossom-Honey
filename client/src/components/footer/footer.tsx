@@ -1,14 +1,49 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+interface Advertisement {
+    _id: string;
+    images: string[];
+    position: "homepage" | "sidebar" | "banner" | "popup" | "footer";
+}
 
 export function Footer() {
+    const [ad, setAd] = useState<Advertisement | null>(null);
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
 
+    useEffect(() => {
+        const fetchAd = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/advertisements`, {
+                    params: { activeOnly: "true", position: "footer" },
+                });
+                if (res.data.length > 0) setAd(res.data[0]); // take first ad
+            } catch (err) {
+                console.error("Failed to fetch footer advertisement", err);
+            }
+        };
+        fetchAd();
+    }, []);
 
     return (
-        <footer className="bg-[#F5F4F3] border-t border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+        <footer className="relative bg-[#F5F4F3] border-t border-gray-200 overflow-hidden">
+            {/* Advertisement background */}
+            {ad && ad.images.length > 0 && (
+                <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                        backgroundImage: `url(${ad.images[0]})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        opacity: 0.1, // adjust transparency
+                    }}
+                />
+            )}
 
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
                     {/* Brand Info */}
                     <div>
                         <h3 className="font-serif text-2xl font-semibold text-yellow-800 mb-4">
@@ -49,7 +84,6 @@ export function Footer() {
                         </ul>
                     </div>
 
-
                     {/* Contact Info */}
                     <div>
                         <h4 className="font-semibold mb-4 text-gray-800">Contact Info</h4>
@@ -72,12 +106,11 @@ export function Footer() {
                     {/* Logo Section */}
                     <div className="flex justify-center md:justify-start items-center">
                         <img
-                            src="@/assets/home-bg.png" // or import logo from "@/assets/logo.png";
+                            src="@/assets/home-bg.png"
                             alt="Blossom Honey Logo"
                             className="h-16 w-auto sm:h-20 md:h-24 object-contain"
                         />
                     </div>
-
                 </div>
 
                 {/* Footer Bottom */}
