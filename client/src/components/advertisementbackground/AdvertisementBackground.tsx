@@ -190,7 +190,7 @@ useEffect(() => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4">
-      <div className="relative w-96 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+      <div className="relative w-100 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
         <button
           onClick={handleClose}
           className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
