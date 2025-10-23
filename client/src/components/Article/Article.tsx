@@ -88,7 +88,7 @@ export function Article({ currentCategory }: Props) {
                     </div>
                 </div>
             ) : (
-                <div className="w-full text-center text-gray-300 italic text-[15px]">
+                <div className="w-full text-center text-gray-900 italic text-[15px]">
                     WELCOME TO BLOSSOM..
                 </div>
             )}

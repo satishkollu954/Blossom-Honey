@@ -175,7 +175,7 @@ export function MyOrders() {
 
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-            <ToastContainer position="top-center" autoClose={1500} />
+            <ToastContainer position="top-right" autoClose={1200} />
             <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center sm:text-left">
                 My Orders
             </h1>
