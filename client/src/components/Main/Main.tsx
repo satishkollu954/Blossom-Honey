@@ -3,14 +3,9 @@ import backgroundImage from "../../assets/home-bg.png";
 import type { JSX } from "react/jsx-runtime";
 
 import { useNavigate } from "react-router-dom";
-<<<<<<< HEAD
-import BeeAnimation from "../BeeAnimation/BeeAnimation";
-import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
+
 import SingleBee from "../BeeAnimation/singlebee";
 
-=======
-import SingleBee from "../BeeAnimation/singlebee";
->>>>>>> f550acdd8436ee96b7780d98b564e4b5c45c0bc1
 
 export function Main(): JSX.Element {
 
