@@ -71,7 +71,7 @@ export function Article({ currentCategory }: Props) {
                                 {coupon.discountType === "percentage"
                                     ? `${coupon.discountValue}% OFF`
                                     : `FLAT ${coupon.discountValue}`}{" "}
-                                | Code: {coupon.code.toUpperCase()}{" "}
+                                - Code: {coupon.code.toUpperCase()}{" "}
                                 {coupon.applicableCategories &&
                                     coupon.applicableCategories.length > 0 && (
                                         <>
