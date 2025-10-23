@@ -10,6 +10,7 @@ export function Index() {
         <div>
            
             <Main />
+             
             <AdvertisementRenderer position="popup" type="background" />
             <FeaturedProducts />
             <Review />

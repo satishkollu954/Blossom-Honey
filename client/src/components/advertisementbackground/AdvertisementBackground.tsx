@@ -42,19 +42,28 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
   }, [position]);
 
   // 🔹 Show popup **only on full page refresh**
+// 🔹 Show popup on scroll 20-30% only once per session
 useEffect(() => {
   if (!currentAd) return;
 
-  const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-  const isFullReload = navEntry?.type === "reload";
-
   const sessionKey = `popup_session_${currentAd._id}`;
   const alreadyShown = sessionStorage.getItem(sessionKey);
+  if (alreadyShown) return; // already shown, skip
 
-  if (isFullReload && !alreadyShown) {
-    setVisible(true);
-    sessionStorage.setItem(sessionKey, "true");
-  }
+  const handleScroll = () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    const scrollPercent = (scrollTop / docHeight) * 100;
+
+    if (scrollPercent >= 20 && scrollPercent <= 30) {
+      setVisible(true);
+      sessionStorage.setItem(sessionKey, "true");
+    }
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => window.removeEventListener("scroll", handleScroll);
 }, [currentAd]);
 
 
@@ -99,14 +108,14 @@ useEffect(() => {
             className="w-full h-full object-cover transition-opacity duration-700 ease-in-out"
           />
           <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white text-center">
-            <h2 className="text-4xl font-bold mb-2 drop-shadow-lg">
+            {/* <h2 className="text-4xl font-bold mb-2 drop-shadow-lg">
               {currentAd.title}
             </h2>
             {currentAd.description && (
               <p className="text-lg max-w-2xl drop-shadow-md mb-4">
                 {currentAd.description}
               </p>
-            )}
+            )} */}
             {currentAd.link && (
               <a
                 href={currentAd.link}
@@ -176,52 +185,38 @@ useEffect(() => {
         </div>
       );
 
-    case "popup":
-      if (!visible) return null;
+  case "popup":
+  if (!visible) return null;
 
-      return (
-        <div className="fixed inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative w-80 bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
-            <button
-              onClick={handleClose}
-              className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
-              title="Close"
-            >
-              ✖
-            </button>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4">
+      <div className="relative w-96 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+        <button
+          onClick={handleClose}
+          className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
+          title="Close"
+        >
+          ✖
+        </button>
 
-            {currentImage && (
-              <div className="relative h-48">
-                <img
-                  src={currentImage}
-                  alt={currentAd.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-              </div>
-            )}
-
-            <div className="p-4 text-left">
-              {currentAd.description && (
-                <p className="font-bold text-red-700 mb-3 uppercase tracking-wide text-lg drop-shadow-sm">
-                  {currentAd.description}
-                </p>
-              )}
-              {currentAd.link && (
-                <a
-                  href={currentAd.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-medium shadow-sm transition"
-                >
-                  Visit
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      );
+        {currentImage && currentAd?.link ? (
+          <a href={currentAd.link}  rel="noopener noreferrer">
+            <img
+              src={currentImage}
+              alt={currentAd?.title || "Advertisement"}
+              className="w-full h-80 object-cover rounded-2xl cursor-pointer"
+            />
+          </a>
+        ) : (
+          <img
+            src={currentImage}
+            alt={currentAd?.title || "Advertisement"}
+            className="w-full h-80 object-cover rounded-2xl"
+          />
+        )}
+      </div>
+    </div>
+  );
 
     case "footer":
       return (

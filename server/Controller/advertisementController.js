@@ -94,7 +94,7 @@ const getActiveAdvertisementsForUser = asyncHandler(async (req, res) => {
   const ads = await Advertisement.find(filter)
     .sort({ createdAt: -1 })
     .select("title description images link position");
-  console.log("Fetched advertisements:", ads);
+  // console.log("Fetched advertisements:", ads);
   res.status(200).json(ads);
 });
 

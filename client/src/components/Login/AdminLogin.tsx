@@ -5,6 +5,9 @@ import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom'; // <-- Import useLocation
 import { useCookies } from 'react-cookie';
 import { toast, ToastContainer } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 
 const AdminLoginSchema = Yup.object().shape({
@@ -24,6 +27,7 @@ export function AdminLogin() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const [loginSuccess, setLoginSuccess] = useState(false);
 
     const fromPath = location.state?.from?.pathname || '/';
 
@@ -43,13 +47,13 @@ export function AdminLogin() {
 
                     setCookie("role", user.role);
                     setCookie("token", token);
-
+                    setLoginSuccess(true);
 
                     toast.success(`Welcome back, ${user.name}` || "User");
                     if (user.role === 'admin') {
-                        setTimeout(() => navigate("/admin", { replace: true }), 800);
+                        setTimeout(() => navigate("/admin", { replace: true }), 1000);
                     } else {
-                        setTimeout(() => navigate(fromPath, { replace: true }), 800);
+                        setTimeout(() => navigate(fromPath, { replace: true }), 1000);
                     }
                 })
                 .catch((error) => {
@@ -61,6 +65,34 @@ export function AdminLogin() {
 
         },
     });
+
+    useEffect(() => {
+  if (loginSuccess) {
+    const pendingCart = localStorage.getItem("pendingCartProduct");
+    if (pendingCart) {
+      const { productId, variantId, quantity } = JSON.parse(pendingCart);
+      localStorage.removeItem("pendingCartProduct");
+
+      const token = cookie.token;
+      axios.post(
+        `${API_URL}/api/cart/add`,
+        { productId, variantId, quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        setTimeout(() => {
+          toast.success("Added product to cart!");
+          console.log("Redirecting to product page...");
+          navigate(`/product/${productId}`);
+        }, 2000);
+      })
+      .catch(() => navigate(`/product/${productId}`));
+    } else {
+      navigate("/");
+    }
+  }
+}, [loginSuccess]);
+
 
     return (
 

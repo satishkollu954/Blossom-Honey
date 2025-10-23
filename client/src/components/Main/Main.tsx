@@ -4,6 +4,8 @@ import type { JSX } from "react/jsx-runtime";
 
 import { useNavigate } from "react-router-dom";
 import BeeAnimation from "../BeeAnimation/BeeAnimation";
+import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
+
 
 export function Main(): JSX.Element {
 
@@ -20,7 +22,11 @@ export function Main(): JSX.Element {
     return (
         <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
             {/* Background */}
+
+             
+
             <BeeAnimation />
+
 
             <div
                 className="absolute inset-0 bg-cover bg-center"
@@ -28,7 +34,7 @@ export function Main(): JSX.Element {
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-amber-800/30 to-transparent" />
             </div>
-
+            
             {/* Content */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
                 <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light text-white mb-6 leading-tight">
