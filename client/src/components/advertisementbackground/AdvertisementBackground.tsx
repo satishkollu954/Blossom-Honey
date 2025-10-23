@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-
 interface Advertisement {
   _id: string;
   title: string;
@@ -66,20 +65,12 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image", onIm
       const docHeight = document.body.scrollHeight - window.innerHeight;
       const scrollPercent = (scrollTop / docHeight) * 100;
 
-<<<<<<< HEAD
       if (scrollPercent >= 20 && scrollPercent <= 30) {
         setVisible(true);
         sessionStorage.setItem(sessionKey, "true");
+        window.removeEventListener("scroll", handleScroll); // remove listener after showing
       }
     };
-=======
-    if (scrollPercent >= 20 && scrollPercent <= 30) {
-      setVisible(true);
-      sessionStorage.setItem(sessionKey, "true");
-      window.removeEventListener("scroll", handleScroll); // remove listener after showing
-    }
-  };
->>>>>>> 89d37159cfe8aef953d067cd3f6ed9c2348ce8f7
 
     window.addEventListener("scroll", handleScroll);
 
@@ -174,32 +165,32 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image", onIm
         </div>
       );
 
-case "sidebar":
-  return (
-    <div className="fixed bottom-4 right-4 w-72 sm:w-80 bg-white shadow-2xl rounded-2xl overflow-hidden transform translate-y-20 opacity-0 animate-slide-up transition-all duration-700 z-50">
-      <img
-        src={currentImage}
-        alt={currentAd.title}
-        className="w-full h-80 object-cover rounded-t-2xl cursor-pointer"
-        onClick={() => {
-          if (currentAd.link) window.open(currentAd.link, "_blank");
-        }}
-      />
-      <div className="p-4 text-center">
-        <h4 className="text-lg font-semibold text-gray-800">{currentAd.title}</h4>
-        {currentAd.link && (
-          <a
-            href={currentAd.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-medium shadow-md transition"
-          >
-            Learn More
-          </a>
-        )}
-      </div>
-    </div>
-  );
+    case "sidebar":
+      return (
+        <div className="fixed bottom-4 right-4 w-72 sm:w-80 bg-white shadow-2xl rounded-2xl overflow-hidden transform translate-y-20 opacity-0 animate-slide-up transition-all duration-700 z-50">
+          <img
+            src={currentImage}
+            alt={currentAd.title}
+            className="w-full h-80 object-cover rounded-t-2xl cursor-pointer"
+            onClick={() => {
+              if (currentAd.link) window.open(currentAd.link, "_blank");
+            }}
+          />
+          <div className="p-4 text-center">
+            <h4 className="text-lg font-semibold text-gray-800">{currentAd.title}</h4>
+            {currentAd.link && (
+              <a
+                href={currentAd.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-medium shadow-md transition"
+              >
+                Learn More
+              </a>
+            )}
+          </div>
+        </div>
+      );
 
     case "popup":
       if (!visible) return null;

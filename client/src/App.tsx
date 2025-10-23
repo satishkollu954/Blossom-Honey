@@ -34,8 +34,9 @@ function App() {
   return (
     <>
       <BrowserRouter>
-        <Article />
+
         <Navbar />
+        <Article />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/shop" element={<Shop />} />
