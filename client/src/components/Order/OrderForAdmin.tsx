@@ -121,14 +121,28 @@ const OrderRowMobile: React.FC<OrderRowMobileProps> = ({
         {statusOrder.map((status) => {
           const currentIndex = statusOrder.indexOf(order.status);
           const optionIndex = statusOrder.indexOf(status);
-          const disabled = optionIndex < currentIndex && status !== "Cancelled";
+
+          // ✅ Allow only the immediate next step
+          const isNext = optionIndex === currentIndex + 1;
+
+          // ✅ Allow "Cancelled" only if not delivered yet
+          const canCancel =
+            status === "Cancelled" && order.status !== "Delivered" && order.status !== "Cancelled";
+
+          // ❌ Disable all others
+          const disabled = !isNext && !canCancel;
+
+          // ✅ Once delivered — disable everything (including cancel)
+          const finalDisabled = order.status === "Delivered" ? true : disabled;
 
           return (
-            <option key={status} value={status} disabled={disabled}>
+            <option key={status} value={status} disabled={finalDisabled}>
               {status}
             </option>
           );
         })}
+
+
       </select>
       {isUpdating && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
     </div>
@@ -138,7 +152,7 @@ const OrderRowMobile: React.FC<OrderRowMobileProps> = ({
     <div className="border-b p-4 grid grid-cols-2 gap-3 text-sm last:border-b-0">
       <div className="font-semibold text-gray-800 flex flex-col">
         <span className="text-xs font-normal text-gray-500">Order ID</span>
-        <span className="truncate">#{order._id.slice(-6).toUpperCase()}</span>
+        <span className="truncate">{order._id.slice(-6).toUpperCase()}</span>
       </div>
       <div className="font-semibold text-gray-800 flex flex-col items-end">
         <span className="text-xs font-normal text-gray-500">Amount</span>
@@ -446,33 +460,49 @@ const OrderForAdmin: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <select
-                          className="border rounded-md px-2 py-1 text-sm"
-                          value={order.status}
-                          disabled={updating === order._id}
-                          onChange={(e) =>
-                            handleStatusUpdate(order._id, e.target.value)
-                          }
-                        >
-                          {statusOrder.map((status) => {
-                            const currentIndex = statusOrder.indexOf(order.status);
-                            const optionIndex = statusOrder.indexOf(status);
+                        <div className="relative inline-flex items-center">
+                          <select
+                            className={`border rounded-md px-2 py-1 text-sm pr-7 ${updating === order._id ? "opacity-60 cursor-not-allowed" : ""
+                              }`}
+                            value={order.status}
+                            disabled={updating === order._id}
+                            onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
+                          >
+                            {statusOrder.map((status) => {
+                              const currentIndex = statusOrder.indexOf(order.status);
+                              const optionIndex = statusOrder.indexOf(status);
 
-                            const disabled =
-                              optionIndex < currentIndex && status !== "Cancelled";
+                              // ✅ Allow only the immediate next step
+                              const isNext = optionIndex === currentIndex + 1;
 
-                            return (
-                              <option
-                                key={status}
-                                value={status}
-                                disabled={disabled}
-                              >
-                                {status}
-                              </option>
-                            );
-                          })}
-                        </select>
+                              // ✅ Allow "Cancelled" only if not delivered yet
+                              const canCancel =
+                                status === "Cancelled" &&
+                                order.status !== "Delivered" &&
+                                order.status !== "Cancelled";
+
+                              // ❌ Disable all others
+                              const disabled = !isNext && !canCancel;
+
+                              // ✅ Once delivered — disable everything (including cancel)
+                              const finalDisabled =
+                                order.status === "Delivered" ? true : disabled;
+
+                              return (
+                                <option key={status} value={status} disabled={finalDisabled}>
+                                  {status}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          {/* ✅ Spinner for desktop view */}
+                          {updating === order._id && (
+                            <Loader2 className="absolute right-2 w-4 h-4 animate-spin text-blue-500" />
+                          )}
+                        </div>
                       </td>
+
                     </tr>
                   ))}
                 </tbody>

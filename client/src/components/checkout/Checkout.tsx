@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
+import { useCart } from "../context/cartcontext"; // adjust path as needed
+
 
 interface Address {
     _id?: string;
@@ -35,6 +37,10 @@ export const Checkout: React.FC = () => {
     const [cookies] = useCookies(["token"]);
     const token = cookies.token;
     const { cartItems, totalPrice } = location.state || {};
+    const [loading, setLoading] = useState(false);
+    const { setCartCount } = useCart();
+
+
 
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [selectedAddress, setSelectedAddress] = useState<string>("");
@@ -108,6 +114,7 @@ export const Checkout: React.FC = () => {
         if (!selectedAddress) return toast.error("Please select an address");
         if (!paymentMethod) return toast.error("Please select a payment method");
 
+        setLoading(true); // Start spinner
         try {
             const res = await axios.post(
                 `${API_URL}/api/cart/checkout`,
@@ -130,6 +137,7 @@ export const Checkout: React.FC = () => {
 
             if (paymentMethod === "COD") {
                 toast.success("COD Order placed successfully!");
+                setCartCount(0);
                 navigate("/success");
             } else {
                 const { razorpayOrder, orderId } = res.data;
@@ -153,9 +161,12 @@ export const Checkout: React.FC = () => {
                                 { headers: { Authorization: `Bearer ${token}` } }
                             );
                             toast.success("Payment successful! Order placed.");
+                            setCartCount(0);
                             navigate("/success");
                         } catch {
                             toast.error("Payment verification failed!");
+                        } finally {
+                            setLoading(false);
                         }
                     },
                     theme: { color: "#f59e0b" },
@@ -165,8 +176,11 @@ export const Checkout: React.FC = () => {
             }
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Checkout failed");
+        } finally {
+            setLoading(false); // Stop spinner
         }
     };
+
 
     // 🏠 Add Address Handler
     const handleAddAddress = async () => {
@@ -430,10 +444,35 @@ export const Checkout: React.FC = () => {
 
                 <button
                     onClick={handleCheckout}
-                    className="w-full mt-8 bg-amber-500 text-white py-3 rounded-xl hover:bg-amber-600 transition text-lg font-semibold"
+                    disabled={loading}
+                    className={`w-full mt-8 flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-xl hover:bg-amber-600 transition text-lg font-semibold ${loading ? "opacity-70 cursor-not-allowed" : ""
+                        }`}
                 >
-                    Place Order
+                    {loading && (
+                        <svg
+                            className="animate-spin h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            ></circle>
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            ></path>
+                        </svg>
+                    )}
+                    {loading ? "Processing..." : "Place Order"}
                 </button>
+
             </div>
         </div>
     );

@@ -72,7 +72,7 @@ const ShopCard: React.FC<{ product: Product }> = ({ product }) => {
         {/* ⭐ Rating Badge Section */}
         <div className="flex items-center justify-center gap-2 mb-3">
           {
-            <span className="bg-gray-400 text-white px-1 py-1 rounded-md text-sm font-semibold flex items-center gap-1">
+            <span className=" text-black px-1 py-1 rounded-md text-sm font-semibold flex items-center gap-1">
               ⭐ {avgRating.toFixed(1)}
             </span>
           }

@@ -4,6 +4,7 @@ import { Package, Truck, CreditCard, Calendar } from "lucide-react";
 import { useCookies } from "react-cookie";
 import { toast, ToastContainer } from "react-toastify";
 import { ReviewFormModal } from "../reviewmodel/ReviewModel"; // Import the new modal component
+import { Loader2 } from "lucide-react";
 
 // --- INTERFACES (UNCHANGED) ---
 interface Variant {
@@ -69,6 +70,7 @@ export function MyOrders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [cookies] = useCookies(["token"]);
+    const [cancelLoading, setCancelLoading] = useState<string | null>(null);
 
     // State to track the product ID and name for the review modal
     const [modalState, setModalState] = useState<ModalState>({
@@ -105,6 +107,7 @@ export function MyOrders() {
     };
 
     const handleCancel = async (orderId: string) => {
+        setCancelLoading(orderId); // 🌀 Show spinner for that order
         try {
             await axios.post(
                 `${API_URL}/api/orders/${orderId}/cancel`,
@@ -116,8 +119,11 @@ export function MyOrders() {
         } catch (error) {
             console.error(error);
             toast.error("Failed to cancel order");
+        } finally {
+            setCancelLoading(null); // 🛑 Stop spinner
         }
     };
+
 
     // --- NEW REVIEW FUNCTIONS ---
 
@@ -336,11 +342,24 @@ export function MyOrders() {
                                 {["Pending", "Processing", "Placed"].includes(order.status) && (
                                     <button
                                         onClick={() => handleCancel(order._id)}
-                                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                        disabled={cancelLoading === order._id}
+                                        className={`px-4 py-2 flex items-center justify-center gap-2 rounded transition text-white 
+      ${cancelLoading === order._id
+                                                ? "bg-red-400 cursor-not-allowed"
+                                                : "bg-red-600 hover:bg-red-700"
+                                            }`}
                                     >
-                                        Cancel Order
+                                        {cancelLoading === order._id ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Cancelling...
+                                            </>
+                                        ) : (
+                                            "Cancel Order"
+                                        )}
                                     </button>
                                 )}
+
                             </div>
                         </div>
                     );
