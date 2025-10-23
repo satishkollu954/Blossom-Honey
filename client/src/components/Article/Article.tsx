@@ -33,12 +33,15 @@ export function Article({ currentCategory }: Props) {
                         !c.applicableCategories ||
                         c.applicableCategories.length === 0 ||
                         (currentCategory
-                            ? c.applicableCategories.some(cat => cat.trim().toLowerCase() === currentCategory.trim().toLowerCase())
+                            ? c.applicableCategories.some(
+                                (cat) =>
+                                    cat.trim().toLowerCase() ===
+                                    currentCategory.trim().toLowerCase()
+                            )
                             : true);
 
                     return notExpired && categoryValid;
                 });
-
 
                 setCoupons(activeCoupons);
             })
@@ -68,7 +71,18 @@ export function Article({ currentCategory }: Props) {
                                 {coupon.discountType === "percentage"
                                     ? `${coupon.discountValue}% OFF`
                                     : `FLAT ${coupon.discountValue}`}{" "}
-                                | Code: {coupon.code.toUpperCase()}
+                                | Code: {coupon.code.toUpperCase()}{" "}
+                                {coupon.applicableCategories &&
+                                    coupon.applicableCategories.length > 0 && (
+                                        <>
+                                            |{" "}
+                                            {coupon.applicableCategories
+                                                .map((cat) =>
+                                                    cat.charAt(0).toUpperCase() + cat.slice(1)
+                                                )
+                                                .join(", ")}
+                                        </>
+                                    )}
                             </span>
                         ))}
                     </div>
