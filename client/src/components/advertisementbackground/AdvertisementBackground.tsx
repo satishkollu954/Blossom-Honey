@@ -13,14 +13,24 @@ interface Advertisement {
 interface Props {
   position: "navbar" | "homepage" | "banner" | "sidebar" | "popup" | "footer";
   type?: "background" | "image";
+  onImageChange?: (imageUrl: string | null) => void;
 }
 
-const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) => {
+const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image", onImageChange }) => {
   const [allImages, setAllImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentAd, setCurrentAd] = useState<Advertisement | null>(null);
   const [visible, setVisible] = useState(false);
   const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+
+  useEffect(() => {
+    if (onImageChange) {
+      if (allImages.length > 0) onImageChange(allImages[currentIndex]);
+      else onImageChange(null);
+    }
+  }, [allImages, currentIndex]);
+
 
   // 🔹 Fetch all ads by position
   useEffect(() => {
@@ -42,29 +52,29 @@ const AdvertisementRenderer: React.FC<Props> = ({ position, type = "image" }) =>
   }, [position]);
 
   // 🔹 Show popup **only on full page refresh**
-// 🔹 Show popup on scroll 20-30% only once per session
-useEffect(() => {
-  if (!currentAd) return;
+  // 🔹 Show popup on scroll 20-30% only once per session
+  useEffect(() => {
+    if (!currentAd) return;
 
-  const sessionKey = `popup_session_${currentAd._id}`;
-  const alreadyShown = sessionStorage.getItem(sessionKey);
-  if (alreadyShown) return; // already shown, skip
+    const sessionKey = `popup_session_${currentAd._id}`;
+    const alreadyShown = sessionStorage.getItem(sessionKey);
+    if (alreadyShown) return; // already shown, skip
 
-  const handleScroll = () => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.body.scrollHeight - window.innerHeight;
-    const scrollPercent = (scrollTop / docHeight) * 100;
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.body.scrollHeight - window.innerHeight;
+      const scrollPercent = (scrollTop / docHeight) * 100;
 
-    if (scrollPercent >= 20 && scrollPercent <= 30) {
-      setVisible(true);
-      sessionStorage.setItem(sessionKey, "true");
-    }
-  };
+      if (scrollPercent >= 20 && scrollPercent <= 30) {
+        setVisible(true);
+        sessionStorage.setItem(sessionKey, "true");
+      }
+    };
 
-  window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
 
-  return () => window.removeEventListener("scroll", handleScroll);
-}, [currentAd]);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [currentAd]);
 
 
   const handleClose = () => {
@@ -185,38 +195,38 @@ useEffect(() => {
         </div>
       );
 
-  case "popup":
-  if (!visible) return null;
+    case "popup":
+      if (!visible) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4">
-      <div className="relative w-100 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
-          title="Close"
-        >
-          ✖
-        </button>
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4">
+          <div className="relative w-100 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 bg-white/50 hover:bg-white rounded-full p-2 shadow-md z-10 transition"
+              title="Close"
+            >
+              ✖
+            </button>
 
-        {currentImage && currentAd?.link ? (
-          <a href={currentAd.link}  rel="noopener noreferrer">
-            <img
-              src={currentImage}
-              alt={currentAd?.title || "Advertisement"}
-              className="w-full h-80 object-cover rounded-2xl cursor-pointer"
-            />
-          </a>
-        ) : (
-          <img
-            src={currentImage}
-            alt={currentAd?.title || "Advertisement"}
-            className="w-full h-80 object-cover rounded-2xl"
-          />
-        )}
-      </div>
-    </div>
-  );
+            {currentImage && currentAd?.link ? (
+              <a href={currentAd.link} rel="noopener noreferrer">
+                <img
+                  src={currentImage}
+                  alt={currentAd?.title || "Advertisement"}
+                  className="w-full h-80 object-cover rounded-2xl cursor-pointer"
+                />
+              </a>
+            ) : (
+              <img
+                src={currentImage}
+                alt={currentAd?.title || "Advertisement"}
+                className="w-full h-80 object-cover rounded-2xl"
+              />
+            )}
+          </div>
+        </div>
+      );
 
     case "footer":
       return (

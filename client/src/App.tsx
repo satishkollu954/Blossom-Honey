@@ -26,6 +26,7 @@ import SuccessPage from "./components/successpage/successpage";
 import CouponManager from "./components/CouponManager/CouponManager";
 import OrderForAdmin from "./components/Order/OrderForAdmin";
 import NotFound from "./components/NotFound/NotFound";
+import { Article } from "./components/Article/Article";
 
 
 
@@ -33,6 +34,7 @@ function App() {
   return (
     <>
       <BrowserRouter>
+        <Article />
         <Navbar />
         <Routes>
           <Route path="/" element={<Index />} />
