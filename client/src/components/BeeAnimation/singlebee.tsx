@@ -24,7 +24,7 @@ export default function SingleBee() {
     return (
         <motion.div
             animate={controls}
-            className="absolute top-0 left-0 w-28 h-28 pointer-events-none z-50"
+            className="absolute top-0 left-0 w-20 h-20 pointer-events-none z-50"
         >
             <Lottie animationData={beeAnimation} loop={true} />
         </motion.div>

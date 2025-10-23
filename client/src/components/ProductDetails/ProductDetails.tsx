@@ -71,6 +71,34 @@ const ProductDetails: React.FC = () => {
     }, [id]);
 
 
+
+    useEffect(() => {
+        const checkIfInCart = async () => {
+            if (!isAuthenticated || !product) return;
+
+            try {
+                const token = cookies.token;
+                const res = await axios.get(`${API_URL}/api/cart`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const inCart = res.data.items.some(
+                    (item: any) =>
+                        item.product._id === product._id &&
+                        item.variant._id === selectedVariant?._id
+                );
+
+                setIsInCart(inCart);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        checkIfInCart();
+    }, [product, selectedVariant]);
+
+
+
     // --- Fetch Product ---
     useEffect(() => {
         const fetchProduct = async () => {
@@ -181,16 +209,10 @@ const ProductDetails: React.FC = () => {
         }
     };
 
-    // --- Carousel Scroll ---
-    //   const scrollCarousel = (direction: "left" | "right") => {
-    //     if (!carouselRef.current) return;
-    //     const scrollAmount = 300;
-    //     carouselRef.current.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
-    //   };
 
     return (
         <div className="container mx-auto px-6 py-10 flex flex-col gap-1 m-0 p-0">
-            <ToastContainer position="top-center" autoClose={1500} />
+            <ToastContainer position="top-right" autoClose={1000} />
 
             {/* Product Details */}
             <div className="flex flex-col lg:flex-row gap-10">
