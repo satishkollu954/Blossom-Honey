@@ -7,6 +7,7 @@ import { useCookies } from 'react-cookie';
 import { toast, ToastContainer } from 'react-toastify';
 import { useState, useEffect } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
+import { useCart } from "../context/cartcontext";
 
 
 
@@ -30,6 +31,7 @@ export function AdminLogin() {
     const [loginSuccess, setLoginSuccess] = useState(false);
 
     const fromPath = location.state?.from?.pathname || '/';
+    const { setCartCount } = useCart();
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -67,31 +69,48 @@ export function AdminLogin() {
     });
 
     useEffect(() => {
-  if (loginSuccess) {
-    const pendingCart = localStorage.getItem("pendingCartProduct");
-    if (pendingCart) {
-      const { productId, variantId, quantity } = JSON.parse(pendingCart);
-      localStorage.removeItem("pendingCartProduct");
+        const handlePendingCart = async () => {
+            if (!loginSuccess) return;
 
-      const token = cookie.token;
-      axios.post(
-        `${API_URL}/api/cart/add`,
-        { productId, variantId, quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .then(() => {
-        setTimeout(() => {
-          toast.success("Added product to cart!");
-          console.log("Redirecting to product page...");
-          navigate(`/product/${productId}`);
-        }, 2000);
-      })
-      .catch(() => navigate(`/product/${productId}`));
-    } else {
-      navigate("/");
-    }
-  }
-}, [loginSuccess]);
+            const pendingCart = localStorage.getItem("pendingCartProduct");
+            if (!pendingCart) {
+                navigate("/");
+                return;
+            }
+
+            const { productId, variantId, quantity } = JSON.parse(pendingCart);
+            localStorage.removeItem("pendingCartProduct");
+
+            try {
+                const token = cookie.token;
+                const res = await axios.post(
+                    `${API_URL}/api/cart/add`,
+                    { productId, variantId, quantity },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                toast.success(res.data.message || "Added product to cart!");
+
+                // Update CartContext
+                // Assuming you have setCartCount in context
+                // Fetch current cart count from backend
+                const cartRes = await axios.get(`${API_URL}/api/cart`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setCartCount(cartRes.data.items?.length || 0);
+
+                // Navigate after short delay to show toast
+                setTimeout(() => navigate(`/product/${productId}`), 1500);
+
+            } catch (err) {
+                console.error("Failed to add pending cart item:", err);
+                navigate(`/product/${productId}`);
+            }
+        };
+
+        handlePendingCart();
+    }, [loginSuccess]);
+
 
 
     return (
