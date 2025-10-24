@@ -237,6 +237,7 @@ const checkout = asyncHandler(async (req, res) => {
       variant.stock -= item.quantity;
       await item.product.save();
     }
+    
 
     // Clear cart
     cart.items = [];

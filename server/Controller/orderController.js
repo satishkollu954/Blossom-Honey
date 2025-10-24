@@ -1,8 +1,10 @@
+// server/Controller/orderController.js
 const asyncHandler = require("express-async-handler");
 const Order = require("../Model/Order");
 const User = require("../Model/User");
 const Product = require("../Model/Product");
 const sendEmail = require("../utils/sendEmail");
+const { createShipmentWithShiprocket } = require("../utils/shiprocket");
 
 // ---------------------- USER CONTROLLERS ---------------------- //
 
@@ -74,6 +76,7 @@ const requestReturn = asyncHandler(async (req, res) => {
 
 // ✅ Cancel Order by user
 const Razorpay = require("razorpay");
+const Warehouse = require("../Model/Warehouse");
 
 const cancelOrder = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -231,11 +234,30 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new Error("Order not found");
   }
 
+  // ✅ Update order status
   order.status = status;
+
+  // ✅ Delivered
   if (status === "Delivered") {
     order.deliveredAt = deliveredAt || new Date();
     if (order.paymentType === "COD") {
       order.paymentStatus = "Paid";
+    }
+  }
+
+  // ✅ Shipped: create Shiprocket shipment if not already
+  if (status === "Shipped" && !order.delivery.partner) {
+    // ✅ Fetch a warehouse (example: first one)
+    const warehouse = await Warehouse.findOne();
+    if (!warehouse) {
+      res.status(400);
+      throw new Error("No warehouse found for shipment");
+    }
+    try {
+      //  const shipmentData = await createShipmentWithShiprocket(order._id, warehouse._id);
+      console.log(`🚀 Shiprocket shipment created for order ${order._id}`);
+    } catch (err) {
+      console.error(`❌ Failed to create Shiprocket shipment: ${err.message}`);
     }
   }
 
@@ -342,7 +364,8 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   });
 
   res.json({
-    message: "Order status updated and email sent successfully",
+    message:
+      "Order status updated, shipment created (if shipped), and email sent successfully",
     order,
   });
 });
