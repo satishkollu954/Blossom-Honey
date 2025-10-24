@@ -29,6 +29,7 @@ import NotFound from "./components/NotFound/NotFound";
 import { Article } from "./components/Article/Article";
 import WhyBlossom from "./components/WhyBlossom/WhyBlossom";
 import ScrollToTop from "./components/ScrollToTop/ScrollToTop";
+import AdminPickupLocations from "./components/AdminPickupLocations/AdminPickupLocations";
 
 
 
@@ -72,6 +73,14 @@ function App() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <CouponManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pickuplocation"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminPickupLocations />
               </ProtectedRoute>
             }
           />
