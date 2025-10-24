@@ -4,8 +4,19 @@ const router = express.Router();
 const Warehouse = require("../Model/Warehouse");
 
 // Add Warehouse
+// Create Warehouse (only one allowed)
 router.post("/", async (req, res) => {
   try {
+    // Check if a warehouse already exists
+    const existing = await Warehouse.findOne();
+    if (existing) {
+      return res
+        .status(400)
+        .json({
+          error: "Warehouse already exists. Only one warehouse allowed.",
+        });
+    }
+
     const warehouse = new Warehouse(req.body);
     await warehouse.save();
     res.json({ message: "Warehouse created successfully", warehouse });
@@ -13,6 +24,8 @@ router.post("/", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+
 // Update warehouse by ID
 router.put("/:id", async (req, res) => {
   try {
