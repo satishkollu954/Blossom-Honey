@@ -27,6 +27,8 @@ import CouponManager from "./components/CouponManager/CouponManager";
 import OrderForAdmin from "./components/Order/OrderForAdmin";
 import NotFound from "./components/NotFound/NotFound";
 import { Article } from "./components/Article/Article";
+import WhyBlossom from "./components/WhyBlossom/WhyBlossom";
+import ScrollToTop from "./components/ScrollToTop/ScrollToTop";
 
 
 
@@ -34,6 +36,7 @@ function App() {
   return (
     <>
       <BrowserRouter>
+        <ScrollToTop />
 
         <Navbar />
         <Article />
@@ -48,6 +51,7 @@ function App() {
           <Route path="/ourstory" element={<HoneyStory />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/whyblossom" element={<WhyBlossom />} />
 
 
 

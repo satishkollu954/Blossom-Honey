@@ -12,11 +12,12 @@ interface Coupon {
 }
 
 interface Props {
-    currentCategory?: string; // optional category filter
+    currentCategory?: string;
 }
 
 export function Article({ currentCategory }: Props) {
     const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [isPaused, setIsPaused] = useState(false);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
@@ -27,8 +28,6 @@ export function Article({ currentCategory }: Props) {
                 const activeCoupons = res.data.filter((c) => {
                     const expiry = new Date(c.expiryDate);
                     const notExpired = c.isActive && expiry >= today;
-
-                    // Category check
                     const categoryValid =
                         !c.applicableCategories ||
                         c.applicableCategories.length === 0 ||
@@ -39,10 +38,8 @@ export function Article({ currentCategory }: Props) {
                                     currentCategory.trim().toLowerCase()
                             )
                             : true);
-
                     return notExpired && categoryValid;
                 });
-
                 setCoupons(activeCoupons);
             })
             .catch((err) => {
@@ -51,56 +48,56 @@ export function Article({ currentCategory }: Props) {
             });
     }, [API_BASE_URL, currentCategory]);
 
-    // Duplicate for smooth continuous scrolling
+    // ✅ Don't render anything if no coupons
+    if (coupons.length === 0) return null;
+
     const displayCoupons = [...coupons, ...coupons];
 
     return (
         <article className="w-full overflow-hidden relative font-[Satoshi] backdrop-blur-sm bg-gradient-to-r from-neutral-900/95 via-neutral-800/90 to-neutral-900/95 text-white shadow-inner py-3 h-10 flex items-center">
-            {coupons.length > 0 ? (
-                <div className="marquee-wrapper w-full overflow-hidden relative">
-                    <div className="marquee flex gap-6 whitespace-nowrap">
-                        {displayCoupons.map((coupon, index) => (
-                            <span
-                                key={index}
-                                className="inline-flex items-center gap-2 px-6 text-[15px] font-medium tracking-wide text-yellow-100"
-                                title={`Applies to: ${coupon.applicableCategories?.join(", ") || "All categories"}`}
-                            >
-                                {index % 3 === 0 && "🔥"}
-                                {index % 3 === 1 && "🎁"}
-                                {index % 3 === 2 && "✨"}
-                                {coupon.discountType === "percentage"
-                                    ? `${coupon.discountValue}% OFF`
-                                    : `FLAT ${coupon.discountValue}`}{" "}
-                                - Code: {coupon.code.toUpperCase()}{" "}
-                                {coupon.applicableCategories &&
-                                    coupon.applicableCategories.length > 0 && (
-                                        <>
-                                            |{" "}
-                                            {coupon.applicableCategories
-                                                .map((cat) =>
-                                                    cat.charAt(0).toUpperCase() + cat.slice(1)
-                                                )
-                                                .join(", ")}
-                                        </>
-                                    )}
-                            </span>
-                        ))}
-                    </div>
+            <div
+                className="marquee-wrapper w-full overflow-hidden relative"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
+                <div
+                    className="marquee flex gap-6 whitespace-nowrap"
+                    style={{ animationPlayState: isPaused ? "paused" : "running" }}
+                >
+                    {displayCoupons.map((coupon, index) => (
+                        <span
+                            key={index}
+                            className="inline-flex items-center gap-2 px-6 text-[15px] font-medium tracking-wide text-yellow-100"
+                            title={`Applies to: ${coupon.applicableCategories?.join(", ") || "All categories"}`}
+                        >
+                            {index % 3 === 0 && "🔥"}
+                            {index % 3 === 1 && "🎁"}
+                            {index % 3 === 2 && "✨"}
+                            {coupon.discountType === "percentage"
+                                ? `${coupon.discountValue}% OFF`
+                                : `FLAT ${coupon.discountValue}`}{" "}
+                            - Code: {coupon.code.toUpperCase()}{" "}
+                            {coupon.applicableCategories &&
+                                coupon.applicableCategories.length > 0 && (
+                                    <>
+                                        |{" "}
+                                        {coupon.applicableCategories
+                                            .map(
+                                                (cat) =>
+                                                    cat.charAt(0).toUpperCase() +
+                                                    cat.slice(1)
+                                            )
+                                            .join(", ")}
+                                    </>
+                                )}
+                        </span>
+                    ))}
                 </div>
-            ) : (
-                <div className="w-full text-center text-gray-900 italic text-[15px]">
-                    WELCOME TO BLOSSOM..
-                </div>
-            )}
+            </div>
 
-            {/* Smooth continuous scrolling animation */}
             <style>
                 {`
           @import url('https://fonts.cdnfonts.com/css/satoshi?styles=20876,20877,20878,20879');
-
-          .marquee-wrapper {
-            position: relative;
-          }
 
           .marquee {
             display: flex;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { ShoppingCart, Menu, X, User } from "lucide-react";
+import { ShoppingCart, Moon, Menu, X, User } from "lucide-react";
 import { useCookies } from "react-cookie";
 import { useCart } from "../context/cartcontext";
 import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
