@@ -38,7 +38,7 @@ const AdminPickupLocations: React.FC = () => {
     const fetchWarehouses = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/warehouses`);
+            const res = await axios.get(`${API_BASE_URL}/api/warehouse`);
             setWarehouses(res.data);
         } catch {
             toast.error("Failed to fetch pickup locations");
@@ -96,10 +96,10 @@ const AdminPickupLocations: React.FC = () => {
 
         try {
             if (editing) {
-                await axios.put(`${API_BASE_URL}/api/warehouses/${editing._id}`, formData);
+                await axios.put(`${API_BASE_URL}/api/warehouse/${editing._id}`, formData);
                 toast.success("Pickup location updated");
             } else {
-                await axios.post(`${API_BASE_URL}/api/warehouses`, formData);
+                await axios.post(`${API_BASE_URL}/api/warehouse`, formData);
                 toast.success("Pickup location added");
             }
             resetForm();
@@ -118,7 +118,7 @@ const AdminPickupLocations: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this location?")) return;
         try {
-            await axios.delete(`${API_BASE_URL}/api/warehouses/${id}`);
+            await axios.delete(`${API_BASE_URL}/api/warehouse/${id}`);
             toast.success("Pickup location deleted");
             fetchWarehouses();
         } catch {
