@@ -249,12 +249,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   if (status === "Shipped" && !order.delivery.partner) {
     // ✅ Fetch a warehouse (example: first one)
     const warehouse = await Warehouse.findOne();
+    console.log("Selected warehouse for shipment:", warehouse);
     if (!warehouse) {
       res.status(400);
       throw new Error("No warehouse found for shipment");
     }
     try {
-      //  const shipmentData = await createShipmentWithShiprocket(order._id, warehouse._id);
+      const shipmentData = await createShipmentWithShiprocket(
+        order._id,
+        warehouse._id
+      );
       console.log(`🚀 Shiprocket shipment created for order ${order._id}`);
     } catch (err) {
       console.error(`❌ Failed to create Shiprocket shipment: ${err.message}`);
