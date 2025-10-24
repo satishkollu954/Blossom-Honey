@@ -7,6 +7,7 @@ import {
     LogOut,
     Menu,
     X,
+    MapPin,
 } from "lucide-react";
 import UploadProduct from "../uploadproducts/UploadProducts";
 import ViewProducts from "../viewproducts/ViewProducts";
@@ -15,6 +16,7 @@ import UsersList from "../AllUsers/AllUsers";
 import CouponManager from "../CouponManager/CouponManager";
 import OrderForAdmin from "../Order/OrderForAdmin";
 import AdvertisementManager from "../Advertisement/Advertisement";
+import AdminPickupLocations from "../AdminPickupLocations/AdminPickupLocations";
 
 
 export default function AdminDashboard() {
@@ -54,6 +56,8 @@ export default function AdminDashboard() {
                 return <OrderForAdmin />;
             case "advertisements":
                 return <AdvertisementManager />;
+            case "pickupLocation":
+                return <AdminPickupLocations />;
             default:
                 return <div className="p-6">Select an option from the sidebar.</div>;
         }
@@ -143,6 +147,17 @@ export default function AdminDashboard() {
                     >
                         <ShoppingCart className="mr-3" size={18} />
                         View Orders
+                    </button>
+
+                    <button
+                        onClick={() => handleMenuClick("pickupLocation")}
+                        className={`flex items-center w-full px-4 py-2 text-left hover:bg-amber-100 transition ${activeSection === "pickupLocation"
+                            ? "bg-amber-100 text-amber-600 font-semibold"
+                            : "text-gray-700"
+                            }`}
+                    >
+                        <MapPin className="mr-3" size={18} />
+                        Pickup Location
                     </button>
 
                     <button

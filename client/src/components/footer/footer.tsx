@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react";
+import { FacebookIcon, InstagramIcon, Mail, Phone, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdvertisementRenderer from "../advertisementbackground/AdvertisementBackground";
@@ -39,17 +39,25 @@ export function Footer() {
                     {/* Brand Info */}
                     <div>
                         <h3 className="font-serif text-2xl font-semibold text-yellow-800 mb-4">
-                            Blossom Honey
+                            Blossom
                         </h3>
                         <p className="text-gray-990 mb-4 leading-relaxed">
                             Premium artisanal honey sourced from nature's finest blossoms. Pure, natural, and delicious.
                         </p>
                         <div className="flex gap-3">
-                            <a href="#" className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 transition">
-                                <Facebook className="h-5 w-5 text-yellow-800" />
+                            <a
+                                href="#"
+                                className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 transition"
+                                aria-label="Facebook"
+                            >
+                                <FacebookIcon className="h-5 w-5 text-yellow-800" />
                             </a>
-                            <a href="#" className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 transition">
-                                <Instagram className="h-5 w-5 text-yellow-800" />
+                            <a
+                                href="#"
+                                className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 transition"
+                                aria-label="Instagram"
+                            >
+                                <InstagramIcon className="h-5 w-5 text-yellow-800" />
                             </a>
                         </div>
                     </div>

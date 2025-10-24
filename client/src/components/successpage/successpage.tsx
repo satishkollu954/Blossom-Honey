@@ -61,14 +61,14 @@ const SuccessPage: React.FC = () => {
             </motion.div>
 
             {/* Decorative Sparkles */}
-            <motion.div
+            {/* <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="absolute bottom-10 text-white/70 text-sm"
+                className="absolute text-white/70 text-sm"
             >
                 <p>✨ Your happiness fuels our passion ✨</p>
-            </motion.div>
+            </motion.div> */}
         </div>
     );
 };
