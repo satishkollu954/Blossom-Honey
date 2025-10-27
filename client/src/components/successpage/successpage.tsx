@@ -60,15 +60,7 @@ const SuccessPage: React.FC = () => {
                 </motion.button>
             </motion.div>
 
-            {/* Decorative Sparkles */}
-            {/* <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="absolute text-white/70 text-sm"
-            >
-                <p>✨ Your happiness fuels our passion ✨</p>
-            </motion.div> */}
+
         </div>
     );
 };

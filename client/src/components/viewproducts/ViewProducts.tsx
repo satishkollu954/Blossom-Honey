@@ -60,7 +60,7 @@ export default function ViewProducts() {
         })
             .then((res) => res.json())
             .then((data) => {
-                console.log(data);
+
                 setProducts(data);
                 setLoading(false);
             })
@@ -98,7 +98,7 @@ export default function ViewProducts() {
                 },
                 body: formData,
             });
-            console.log(";;;;", res.status);
+
 
             if (res.status == 200) {
                 const updated = await res.json();
@@ -142,7 +142,7 @@ export default function ViewProducts() {
                     })
                 }
             );
-            console.log(res.status);
+
             if (res.status == 200) {
                 setProducts((prev) =>
                     prev.map((p) =>

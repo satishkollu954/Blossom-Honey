@@ -115,20 +115,6 @@ export default function CouponManager() {
         setShowModal(true);
     };
 
-    // const handleDelete = async (id: string) => {
-    //     if (!window.confirm("Are you sure you want to delete this coupon?")) return;
-    //     try {
-    //         await axios.delete(`http://localhost:3005/api/coupons/${id}`, {
-    //             headers: { Authorization: `Bearer ${cookies.token}` },
-    //         });
-    //         toast.success("Coupon deleted successfully!");
-    //         fetchCoupons();
-    //     } catch (error) {
-    //         console.error(error);
-    //         toast.error("Failed to delete coupon");
-    //     }
-    // };
-
     return (
         <div className="p-4 sm:p-6 max-w-7xl mx-auto">
             <ToastContainer position="top-right" autoClose={1500} />

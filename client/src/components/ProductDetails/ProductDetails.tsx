@@ -190,18 +190,18 @@ const ProductDetails: React.FC = () => {
     // const nextImage = () => setImageIndex((prev) => (prev + 1) % allImages.length);
     // const prevImage = () => setImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
 
-  //  const handleRedirectIfNotLoggedIn = () => navigate("/login", { state: { from: location.pathname } });
+    //  const handleRedirectIfNotLoggedIn = () => navigate("/login", { state: { from: location.pathname } });
 
     const handleCartClick = async (productId: string, variantId: string, quantity: number) => {
         if (!isAuthenticated) {
-    // Save pending product info before redirect
-    localStorage.setItem(
-      "pendingCartProduct",
-      JSON.stringify({ productId, variantId, quantity })
-    );
-    navigate("/login", { state: { from: location.pathname } });
-    return;
-  }
+            // Save pending product info before redirect
+            localStorage.setItem(
+                "pendingCartProduct",
+                JSON.stringify({ productId, variantId, quantity })
+            );
+            navigate("/login", { state: { from: location.pathname } });
+            return;
+        }
         try {
             const token = cookies.token;
             const res = await axios.post(

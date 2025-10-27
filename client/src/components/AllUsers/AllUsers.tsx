@@ -41,7 +41,7 @@ export default function UserList() {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const data = await res.json();
-                console.log("Raw data:", data); // 👈 Check structure here
+
 
                 // 🔍 Handle both cases — array or wrapped object
                 const usersArray = Array.isArray(data)
