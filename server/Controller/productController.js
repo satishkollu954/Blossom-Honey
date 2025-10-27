@@ -295,17 +295,21 @@ const addVariant = asyncHandler(async (req, res) => {
   let variantsData = [];
   try {
     variantsData =
-      typeof req.body.variants === "string"
-        ? JSON.parse(req.body.variants)
-        : req.body.variants;
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
   } catch (err) {
     res.status(400);
     throw new Error("Invalid variants data format");
   }
+  console.log("variantsData", variantsData);
+  console.log("req.body.variantsa", req.body);
+  // Ensure variantsData is always an array
+  if (!Array.isArray(variantsData)) {
+    variantsData = [variantsData];
+  }
 
-  if (!Array.isArray(variantsData) || variantsData.length === 0) {
+  if (variantsData.length === 0) {
     res.status(400);
-    throw new Error("Variants should be a non-empty array");
+    throw new Error("No variants provided");
   }
 
   const flatImages = req.files?.variantImages || [];
@@ -316,7 +320,10 @@ const addVariant = asyncHandler(async (req, res) => {
     // Generate unique SKU if not provided
     const variantSku =
       variantData.sku ||
-      `${product.sku}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      `${product.sku}-${Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase()}`;
 
     // Convert weight → kg
     const weightInKg = convertWeightToKg(variantData.weight);
@@ -370,87 +377,82 @@ const addVariant = asyncHandler(async (req, res) => {
   });
 });
 
-
 // ===============================================================
 // ✅ UPDATE VARIANTS (Images Only)
-// ===============================================================
 const updateVariants = asyncHandler(async (req, res) => {
-  const { productId } = req.params;
+  const { productId, variantId } = req.params;
 
+  // 1️⃣ Find product
   const product = await Product.findById(productId);
   if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
+    return res.status(404).json({ message: "❌ Product not found" });
   }
 
-  let variantsData = [];
-  try {
-    variantsData =
-      typeof req.body.variants === "string"
-        ? JSON.parse(req.body.variants)
-        : req.body.variants;
-  } catch (err) {
-    res.status(400);
-    throw new Error("Invalid variants data format");
+  // 2️⃣ Find the variant inside product
+  const variant = product.variants.id(variantId);
+  if (!variant) {
+    return res.status(404).json({ message: "❌ Variant not found" });
   }
 
-  if (!Array.isArray(variantsData)) {
-    res.status(400);
-    throw new Error("Variants should be an array");
+  // 3️⃣ Extract single variant update (because admin updates only one)
+  const update = req.body.variants?.[0];
+  if (!update) {
+    return res.status(400).json({ message: "No variant data provided" });
   }
 
-  let imageIndex = 0;
-  const flatImages = req.files?.variantImages || [];
+  console.log("Received update:", update);
 
-  variantsData.forEach((update) => {
-    const variantIndex = product.variants.findIndex(
-      (v) => v._id.toString() === update.variantId
-    );
-    if (variantIndex === -1) return;
+  // 4️⃣ Apply updates safely
+  if (update.weight) {
+    variant.weight = update.weight;
+    variant.weightInKg = convertWeightToKg(update.weight);
+  }
+  if (update.type) variant.type = update.type;
+  if (update.packaging) variant.packaging = update.packaging;
+  if (update.price !== undefined) variant.price = update.price;
+  if (update.discount !== undefined) variant.discount = update.discount;
+  if (update.stock !== undefined) variant.stock = update.stock;
+  if (update.sku) variant.sku = update.sku;
+  if (update.dimensions || update.length || update.width || update.height) {
+    variant.dimensions = {
+      length:
+        update.length ?? update.dimensions?.length ?? variant.dimensions.length,
+      breadth:
+        update.width ??
+        update.dimensions?.breadth ??
+        variant.dimensions.breadth,
+      height:
+        update.height ?? update.dimensions?.height ?? variant.dimensions.height,
+    };
+  }
 
-    const variant = product.variants[variantIndex];
+  console.log("--> ", variant.dimensions);
+  // 5️⃣ Recalculate final price
+  const price = variant.price || 0;
+  const discount = variant.discount || 0;
+  variant.finalPrice = Math.round(price - (price * discount) / 100);
 
-    ["weight", "type", "packaging", "price", "discount", "stock"].forEach(
-      (field) => {
-        if (update[field] !== undefined) {
-          variant[field] = update[field];
-        }
-      }
-    );
-
-    if (update.weight) {
-      variant.weightInKg = convertWeightToKg(update.weight);
+  // 6️⃣ Handle image upload (if applicable)
+  if (req.files?.variantImages?.length) {
+    const uploadedImages = [];
+    for (const file of req.files.variantImages) {
+      const url = createUploader(
+        file.buffer,
+        `BlossomHoney/products/${productId}/variants/${variantId}`,
+        file.originalname.split(".")[0] + "-" + Date.now(),
+        "image"
+      );
+      uploadedImages.push(url);
     }
-
-    variant.finalPrice = Math.round(
-      variant.price - (variant.price * (variant.discount || 0)) / 100
-    );
-
-    // --- Upload images for variant ---
-    if (update.numImages && flatImages.length > imageIndex) {
-      const uploadedImages = [];
-      for (let i = 0; i < update.numImages; i++) {
-        const file = flatImages[imageIndex];
-        if (!file) break;
-
-        const url = createUploader(
-          file.buffer,
-          `BlossomHoney/products/${productId}/variants/${variantIndex}`,
-          file.originalname.split(".")[0] + "-" + Date.now(),
-          "image"
-        );
-        uploadedImages.push(url);
-        imageIndex++;
-      }
-      variant.images = uploadedImages;
-    }
-  });
-
+    variant.images = uploadedImages;
+  }
+  console.log("product==>>  ", product.variants[0].dimensions);
+  // 7️⃣ Save product (with updated variant)
   await product.save();
 
   res.status(200).json({
-    message: "✅ Variants updated successfully",
-    variants: product.variants,
+    message: "✅ Variant updated successfully",
+    variant,
   });
 });
 
