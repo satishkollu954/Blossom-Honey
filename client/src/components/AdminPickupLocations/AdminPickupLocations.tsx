@@ -114,9 +114,19 @@ const AdminPickupLocations: React.FC = () => {
 
     const handleEdit = (wh: Warehouse) => {
         setEditing(wh);
-        setFormData(wh);
+        setFormData({
+            name: wh.name,
+            contact: wh.contact,
+            phone: wh.phone,
+            address: wh.address,
+            city: wh.city,
+            state: wh.state,
+            pincode: wh.pincode,
+            pickupTime: wh.pickupTime,
+        });
         setErrors({});
     };
+
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this location?")) return;
