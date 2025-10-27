@@ -1,15 +1,12 @@
-// server/Controller/productController.js
 const asyncHandler = require("express-async-handler");
 const Product = require("../Model/Product");
 const mongoose = require("mongoose");
 const {
   createUploader,
   extractFileUrls,
+  deleteCloudinaryFolder,
 } = require("../Middleware/uploadMiddleware");
-// =========================================================================
 const { cloudinary } = require("../Middleware/newmiddleware");
-
-const { deleteCloudinaryFolder } = require("../Middleware/uploadMiddleware");
 const User = require("../Model/User");
 
 // Generate SKU
@@ -19,7 +16,25 @@ function generateSKU(productName) {
   return `${prefix}-${random}`;
 }
 
-// CREATE PRODUCT WITH IMAGES
+function convertWeightToKg(weightStr) {
+  if (!weightStr) return 0;
+
+  const lower = weightStr.trim().toLowerCase();
+
+  // Match numeric part
+  const num = parseFloat(lower);
+  if (isNaN(num)) return 0;
+
+  if (lower.includes("kg")) return num;
+  if (lower.includes("g")) return num / 1000;
+  if (lower.includes("mg")) return num / 1_000_000;
+  if (lower.includes("lb") || lower.includes("lbs")) return num * 0.453592;
+  return num; // fallback
+}
+
+// ===============================================================
+// ✅ CREATE PRODUCT (Images Only, Variants Supported)
+// ===============================================================
 const createProduct = asyncHandler(async (req, res) => {
   let variantsData = [];
   if (req.body.variants) {
@@ -45,18 +60,34 @@ const createProduct = asyncHandler(async (req, res) => {
   const sellerId = req.user._id;
   const isApproved = req.user.role === "admin";
 
-  // Generate SKU
-  let sku;
+  // ✅ Generate unique SKU for main product
+  let productSku;
   do {
-    sku = generateSKU(req.body.name);
-  } while (await Product.findOne({ sku }));
+    productSku = generateSKU(req.body.name);
+  } while (await Product.findOne({ sku: productSku }));
 
+  // ✅ Generate SKU for each variant
+  const processedVariants = [];
+  for (const variant of variantsData) {
+    let variantSku;
+    do {
+      variantSku = generateSKU(req.body.name);
+    } while (await Product.findOne({ "variants.sku": variantSku }));
+
+    processedVariants.push({
+      ...variant,
+      sku: variantSku,
+      weightInKg: convertWeightToKg(variant.weight),
+    });
+  }
+
+  // ✅ Create product
   const product = new Product({
     name: req.body.name,
     description: req.body.description,
     category: req.body.category,
-    sku,
-    variants: variantsData,
+    sku: productSku,
+    variants: processedVariants,
     seller: sellerId,
     isApproved,
     shippingCharge: req.body.shippingCharge || 0,
@@ -67,65 +98,60 @@ const createProduct = asyncHandler(async (req, res) => {
   const savedProduct = await product.save();
   const productId = savedProduct._id.toString();
 
-  // --- Upload PRODUCT media (images/videos) ---
-  const uploadedProductMedia = [];
+  // ✅ Upload PRODUCT images (if any)
+  const uploadedProductImages = [];
   if (req.files?.productImages) {
     for (let file of req.files.productImages) {
-      const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${productId}/${type}s`,
+        `BlossomHoney/products/${productId}/images`,
         file.originalname.split(".")[0] + "-" + Date.now(),
-        type
+        "image"
       );
-      uploadedProductMedia.push(url);
+      uploadedProductImages.push(url);
     }
   }
 
-  savedProduct.images = uploadedProductMedia; // store product media
-  savedProduct.variants = variantsData;
+  savedProduct.images = uploadedProductImages;
   await savedProduct.save();
 
   res.status(201).json({
-    message: "Product created successfully",
+    message: "✅ Product created successfully",
     product: savedProduct,
   });
 });
 
+// ===============================================================
+// ✅ GET ALL APPROVED PRODUCTS
+// ===============================================================
 const getApprovedProducts = asyncHandler(async (req, res) => {
-  // const pageSize = 12;
-  // const page = Number(req.query.pageNumber) || 1;
-
-  const query = { isApproved: true };
-
-  // const count = await Product.countDocuments(query);
-  const products = await Product.find(query);
-
-  //res.json({ products, page, pages: Math.ceil(count / pageSize), count });
+  const products = await Product.find({ isApproved: true });
   res.json({ products });
 });
 
+// ===============================================================
+// ✅ GET PRODUCT BY ID
+// ===============================================================
 const getProductById = asyncHandler(async (req, res) => {
-  //  console.log("Fetching product by ID:", req.params.id);
   const product = await Product.findOne({
     _id: req.params.id,
     isApproved: true,
   });
-  // console.log("Fetched  single product :", product);
-  if (product) {
-    res.json(product);
-  } else {
+
+  if (!product) {
     res.status(404);
     throw new Error("Product not found or not yet approved");
   }
+
+  res.json(product);
 });
 
+// ===============================================================
+// ✅ CREATE PRODUCT REVIEW (Images Only)
+// ===============================================================
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
   const productId = req.params.id;
-
-  console.log("Creating review with rating:", rating, "and comment:", comment);
-  console.log("Product ID:", productId);
 
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
@@ -140,16 +166,15 @@ const createProductReview = asyncHandler(async (req, res) => {
       .json({ message: "Product already reviewed by this user" });
   }
 
-  // ✅ Handle image/video uploads
+  // ✅ Upload review images (only images)
   const reviewImages = [];
   if (req.files?.reviewImages) {
     for (const file of req.files.reviewImages) {
-      const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${product._id}/reviews/${type}s`,
+        `BlossomHoney/products/${product._id}/reviews/images`,
         file.originalname.split(".")[0] + "-" + Date.now(),
-        type
+        "image"
       );
       reviewImages.push(url);
     }
@@ -158,7 +183,6 @@ const createProductReview = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   const username = user?.name || "Anonymous";
 
-  // ✅ Create new review
   const review = {
     user: req.user._id,
     username,
@@ -179,19 +203,18 @@ const createProductReview = asyncHandler(async (req, res) => {
 
   await product.save();
 
-  console.log("✅ Review added successfully by", username);
-
-  return res.status(201).json({
-    message: "Review added successfully",
+  res.status(201).json({
+    message: "✅ Review added successfully",
     review,
   });
 });
 
+// ===============================================================
+// ✅ GET PRODUCT REVIEWS
+// ===============================================================
 const getProductReviews = asyncHandler(async (req, res) => {
-  const productId = req.params.id;
-
-  const product = await Product.findById(productId)
-    .populate("reviews.user", "name email") // populate user info if needed
+  const product = await Product.findById(req.params.id)
+    .populate("reviews.user", "name email")
     .select("reviews ratings");
 
   if (!product) {
@@ -201,28 +224,29 @@ const getProductReviews = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     reviews: product.reviews,
-    ratings: product.ratings, // optional: send average/count
+    ratings: product.ratings,
   });
 });
 
+// ===============================================================
+// ✅ ADMIN: GET ALL PRODUCTS (with seller & reviews populated)
+// ===============================================================
 const getAllProductsAdminView = asyncHandler(async (req, res) => {
-  try {
-    const products = await Product.find()
-      .populate("seller", "name email role") // populate seller details
-      .populate("reviews.user", "name email"); // populate review user details
-    res.status(200).json(products);
-  } catch (error) {
-    res.status(500);
-    throw new Error("Server error fetching products");
-  }
+  const products = await Product.find()
+    .populate("seller", "name email role")
+    .populate("reviews.user", "name email");
+
+  res.status(200).json(products);
 });
 
+// ===============================================================
+// ✅ UPDATE PRODUCT (Images + Basic Fields)
+// ===============================================================
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const product = await Product.findById(id);
   if (!product) throw new Error("Product not found");
 
-  // --- Update basic fields ---
   const updatableFields = [
     "name",
     "description",
@@ -231,20 +255,20 @@ const updateProduct = asyncHandler(async (req, res) => {
     "deliveryTime",
     "tags",
   ];
+
   updatableFields.forEach((field) => {
     if (req.body[field] !== undefined) product[field] = req.body[field];
   });
 
-  // --- Update product media ---
+  // --- Update product images (only images) ---
   if (req.files?.productImages) {
     const uploadedProductImages = [];
     for (let file of req.files.productImages) {
-      const type = file.mimetype.startsWith("video/") ? "video" : "image";
       const url = await createUploader(
         file.buffer,
-        `BlossomHoney/products/${id}/${type}s`,
+        `BlossomHoney/products/${id}/images`,
         file.originalname.split(".")[0] + "-" + Date.now(),
-        type
+        "image"
       );
       uploadedProductImages.push(url);
     }
@@ -254,11 +278,14 @@ const updateProduct = asyncHandler(async (req, res) => {
   await product.save();
 
   res.status(200).json({
-    message: "Product updated successfully",
+    message: "✅ Product updated successfully",
     product,
   });
 });
 
+// ===============================================================
+// ✅ UPDATE VARIANTS (Images Only)
+// ===============================================================
 const updateVariants = asyncHandler(async (req, res) => {
   const { productId } = req.params;
 
@@ -278,24 +305,23 @@ const updateVariants = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid variants data format");
   }
-  // console.log("==>>  ", variantsData);
+
   if (!Array.isArray(variantsData)) {
     res.status(400);
     throw new Error("Variants should be an array");
   }
 
-  let imageIndex = 0; // for req.files.variantImages if provided
+  let imageIndex = 0;
   const flatImages = req.files?.variantImages || [];
 
   variantsData.forEach((update) => {
     const variantIndex = product.variants.findIndex(
       (v) => v._id.toString() === update.variantId
     );
-    if (variantIndex === -1) return; // skip invalid variantId
+    if (variantIndex === -1) return;
 
     const variant = product.variants[variantIndex];
 
-    // --- Update fields ---
     ["weight", "type", "packaging", "price", "discount", "stock"].forEach(
       (field) => {
         if (update[field] !== undefined) {
@@ -304,12 +330,15 @@ const updateVariants = asyncHandler(async (req, res) => {
       }
     );
 
-    // --- Recalculate finalPrice ---
+    if (update.weight) {
+      variant.weightInKg = convertWeightToKg(update.weight);
+    }
+
     variant.finalPrice = Math.round(
       variant.price - (variant.price * (variant.discount || 0)) / 100
     );
 
-    // --- Update images ---
+    // --- Upload images for variant ---
     if (update.numImages && flatImages.length > imageIndex) {
       const uploadedImages = [];
       for (let i = 0; i < update.numImages; i++) {
@@ -319,7 +348,8 @@ const updateVariants = asyncHandler(async (req, res) => {
         const url = createUploader(
           file.buffer,
           `BlossomHoney/products/${productId}/variants/${variantIndex}`,
-          file.originalname.split(".")[0] + "-" + Date.now()
+          file.originalname.split(".")[0] + "-" + Date.now(),
+          "image"
         );
         uploadedImages.push(url);
         imageIndex++;
@@ -331,11 +361,14 @@ const updateVariants = asyncHandler(async (req, res) => {
   await product.save();
 
   res.status(200).json({
-    message: "Variants updated successfully",
+    message: "✅ Variants updated successfully",
     variants: product.variants,
   });
 });
 
+// ===============================================================
+// ✅ DELETE VARIANT
+// ===============================================================
 const deleteVariant = asyncHandler(async (req, res) => {
   const { productId, variantId } = req.params;
 
@@ -354,15 +387,12 @@ const deleteVariant = asyncHandler(async (req, res) => {
     throw new Error("Variant not found");
   }
 
-  // Remove the variant
   product.variants.splice(variantIndex, 1);
 
-  // ✅ If no variants remain, delete the product entirely
+  // ✅ Delete entire product if no variants left
   if (product.variants.length === 0) {
-    // console.log("No variants left, deleting product");
     await Product.findByIdAndDelete(productId);
 
-    // Delete associated images from Cloudinary
     const folderPath = `BlossomHoney/products/${product._id}`;
     await deleteCloudinaryFolder(folderPath);
 
@@ -372,15 +402,17 @@ const deleteVariant = asyncHandler(async (req, res) => {
     });
   }
 
-  // Otherwise, just save the product
   await product.save();
 
   res.status(200).json({
-    message: "Variant deleted successfully",
+    message: "✅ Variant deleted successfully",
     productDeleted: false,
   });
 });
 
+// ===============================================================
+// ✅ DELETE PRODUCT
+// ===============================================================
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
@@ -399,13 +431,15 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   await product.deleteOne();
 
-  // Delete associated images from Cloudinary
   const folderPath = `BlossomHoney/products/${product._id}`;
   await deleteCloudinaryFolder(folderPath);
 
-  res.json({ message: "Product removed successfully" });
+  res.json({ message: "✅ Product removed successfully" });
 });
 
+// ===============================================================
+// ✅ APPROVE PRODUCT (Admin Only)
+// ===============================================================
 const approveProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) {
@@ -417,7 +451,7 @@ const approveProduct = asyncHandler(async (req, res) => {
   await product.save();
 
   res.json({
-    message: "Product approved successfully",
+    message: "✅ Product approved successfully",
     product: {
       _id: product._id,
       name: product.name,
@@ -426,12 +460,11 @@ const approveProduct = asyncHandler(async (req, res) => {
   });
 });
 
-// --- Fetch Products by Category ---
+// ===============================================================
+// ✅ GET PRODUCTS BY CATEGORY
+// ===============================================================
 const getProductsByCategory = asyncHandler(async (req, res) => {
   const { categoryName } = req.params;
-  console.log("Fetching products for category:", categoryName);
-
-  // Validate category
   const validCategories = [
     "dry-fruits",
     "honey",
@@ -439,23 +472,26 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
     "spices",
     "other",
   ];
+
   if (!validCategories.includes(categoryName.toLowerCase().trim())) {
     res.status(400);
     throw new Error("Invalid category");
   }
 
-  // Fetch products that match category and are approved
   const products = await Product.find({
     category: categoryName,
     isApproved: true,
   });
 
-  if (!products || products.length === 0) {
+  if (!products.length) {
     res.status(404);
     throw new Error("No products found in this category");
   }
 
-  res.status(200).json({ count: products.length, products });
+  res.status(200).json({
+    count: products.length,
+    products,
+  });
 });
 
 module.exports = {

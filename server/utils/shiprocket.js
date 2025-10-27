@@ -12,128 +12,132 @@ class Shiprocket {
     this.maxRetries = 3;
   }
 
-  // 🔄 Retry helper
   async retryRequest(fn, attempt = 1) {
     try {
       return await fn();
     } catch (err) {
       if (attempt >= this.maxRetries) throw err;
-      const delay = 500 * attempt; // exponential backoff
+      const delay = 500 * attempt;
       console.warn(`⚠️ Retry attempt ${attempt} after ${delay}ms`);
       await new Promise((res) => setTimeout(res, delay));
       return this.retryRequest(fn, attempt + 1);
     }
   }
 
-  // ✅ Get or refresh token
   async getShiprocketToken() {
     const now = new Date();
-    if (this.token && this.tokenExpiry && now < this.tokenExpiry)
-      return this.token;
+    if (this.token && this.tokenExpiry && now < this.tokenExpiry) return this.token;
 
+    console.log("Refreshing Shiprocket token...");
     return this.retryRequest(async () => {
-      const res = await axios.post(
-        "https://apiv2.shiprocket.in/v1/external/auth/login",
-        { email: SHIPROCKET_EMAIL, password: SHIPROCKET_PASSWORD }
-      );
+      const res = await axios.post("https://apiv2.shiprocket.in/v1/external/auth/login", {
+        email: SHIPROCKET_EMAIL,
+        password: SHIPROCKET_PASSWORD,
+      });
       this.token = res.data.token;
-      this.tokenExpiry = new Date(now.getTime() + 23 * 60 * 60 * 1000); // 23h
+      this.tokenExpiry = new Date(now.getTime() + 23 * 60 * 60 * 1000);
       console.log("✅ Shiprocket token refreshed");
       return this.token;
     });
   }
 
-  // ✅ Build shipping address string
   buildAddress(addr) {
-    return `${addr.houseNo || ""}, ${addr.street || ""}, ${addr.city || ""}, ${
-      addr.state || ""
-    }, ${addr.postalCode || ""}`
+    return `${addr.houseNo || ""}, ${addr.street || ""}, ${addr.city || ""}, ${addr.state || ""}, ${
+      addr.postalCode || ""
+    }`
       .replace(/,\s*,/g, ",")
       .replace(/^, |, $/g, "")
       .trim();
   }
 
-  // ✅ Create shipment with warehouse
-  async createShipmentWithShiprocket(orderId, warehouseId, options = {}) {
+  async createShipmentWithShiprocket(orderId, warehouseId) {
     const order = await Order.findById(orderId).populate("user");
     if (!order) throw new Error("Order not found");
 
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) throw new Error("Warehouse not found");
 
-    const {
-      totalWeight = 1,
-      dimensions = { length: 10, breadth: 10, height: 10 },
-    } = options;
+    // ✅ Calculate total weight and largest box dimensions
+    let totalWeight = 0;
+    let maxLength = 0, maxBreadth = 0, maxHeight = 0;
 
+    const orderItems = order.products.map((item) => {
+      totalWeight += (item.weightInKg || 0.5) * item.quantity;
+      maxLength = Math.max(maxLength, item.dimensions?.length || 10);
+      maxBreadth = Math.max(maxBreadth, item.dimensions?.breadth || 10);
+      maxHeight = Math.max(maxHeight, item.dimensions?.height || 10);
+
+      return {
+        name: item.name,
+        sku: item.sku || item.product.toString(),
+        units: item.quantity,
+        selling_price: item.price,
+      };
+    });
+
+  if(totalWeight <= 0) totalWeight = 0.5; // minimum 500g
+    const dimensions = {
+      length: maxLength || 10,
+      breadth: maxBreadth || 10,
+      height: maxHeight || 10,
+    };
     const token = await this.getShiprocketToken();
-
+    const orderDate = new Date().toISOString().slice(0, 16).replace("T", " ");
     const shipmentData = {
       order_id: order._id.toString(),
-      order_date: new Date().toISOString(),
-      pickup_location: warehouse.name,
-      channel_id: "",
+      order_date: orderDate,
+      pickup_location: warehouse.pickupLocationName,
+      comment: "Order from Blossom Honey",
       billing_customer_name: order.user.name || "Customer",
-      billing_last_name: "",
+      billing_last_name: "NA",
       billing_address: this.buildAddress(order.shippingAddress),
       billing_city: order.shippingAddress.city,
-      billing_pincode: order.shippingAddress.postalCode,
+      billing_pincode: parseInt(order.shippingAddress.postalCode) || 0,
       billing_state: order.shippingAddress.state,
       billing_country: "India",
       billing_email: order.user.email,
-      billing_phone: order.shippingAddress.phone || "9999999999",
+      billing_phone: order.shippingAddress.phone?.toString() || "9999999999",
       shipping_is_billing: true,
-      order_items: order.products.map((p) => ({
-        name: p.name,
-        sku: p.product.toString(),
-        units: p.quantity,
-        selling_price: p.price,
-      })),
+      order_items: orderItems,
       payment_method: order.paymentType === "COD" ? "COD" : "Prepaid",
+      shipping_charges: order.shippingCharge || 0,
       sub_total: order.totalAmount,
       weight: totalWeight,
       length: dimensions.length,
       breadth: dimensions.breadth,
       height: dimensions.height,
-
-      // ✅ Pickup details from warehouse
-      pickup_customer_name: warehouse.contact,
-      pickup_email: "", // optional
-      pickup_phone: warehouse.phone,
-      pickup_address: warehouse.address,
-      pickup_city: warehouse.city,
-      pickup_state: warehouse.state,
-      pickup_country: "India",
-      pickup_pincode: warehouse.pincode,
-      pickup_time: warehouse.pickupTime, // e.g., "10:00-18:00"
     };
-
+    console.log("Creating shipment with data:", shipmentData);
     const data = await this.retryRequest(async () => {
       const res = await axios.post(
         "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
         shipmentData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
       return res.data;
     });
-
-    // Save tracking info in order
-    order.delivery.partner = "Shiprocket";
-    order.delivery.trackingId = data.shipment_id;
-    order.delivery.awbNumber = data.awb_code;
-    order.delivery.deliveryStatus = "Pickup Scheduled";
-    order.delivery.pickupAddress = warehouse.address;
-    order.delivery.deliveryAddress = this.buildAddress(order.shippingAddress);
-    order.delivery.estimatedDeliveryDate = data.estimated_delivery_date;
-    await order.save();
-
+    console.log("✅ Shipment created:", data);
+    // ✅ Save delivery info to order
+    order.delivery = {
+      partner: "Shiprocket",
+      trackingId: data.shipment_id,
+      awbNumber: data.awb_code,
+      shipmentId: data.shipment_id,
+      deliveryStatus: "Pickup Scheduled",
+      pickupAddress: warehouse.address,
+      deliveryAddress: this.buildAddress(order.shippingAddress),
+      estimatedDeliveryDate: data.estimated_delivery_date,
+    };
+   await order.save();
     return data;
   }
 }
-
-// Export instance
 const shiprocket = new Shiprocket();
 module.exports = {
-  createShipmentWithShiprocket:
-    shiprocket.createShipmentWithShiprocket.bind(shiprocket),
+  createShipmentWithShiprocket: shiprocket.createShipmentWithShiprocket.bind(shiprocket),
 };

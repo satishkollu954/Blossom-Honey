@@ -16,62 +16,28 @@ const reviewSchema = new mongoose.Schema(
 
 // Variant Schema for Dry Fruits and Honey
 const variantSchema = new mongoose.Schema({
-  // Replaces 'size' with 'weight' or quantity (e.g., 250g, 500g, 1kg for dry fruits, or 250ml, 500ml for honey)
   weight: {
     type: String,
-    enum: [
-      "100g",
-      "250g",
-      "500g",
-      "750g",
-      "1kg",
-      "2kg",
-      "250ml",
-      "500ml",
-      "1L",
-    ],
     required: true,
-    description: "The quantity or weight of the product variant.",
+    description: "e.g., 250g, 1kg, etc.",
   },
-  // New field for specific type, flavor, or grade (e.g., 'Raw', 'Organic', 'Acacia', 'Roasted & Salted')
-  type: {
-    type: String,
+  weightInKg: {
+    type: Number,
     required: true,
-    enum: [
-      // 🐝 Honey Types
-      "Raw", // Unprocessed, straight from the hive
-      "Organic", // Certified organic
-      "Wild", // Forest or wild-collected honey
-      "Natural", // No additives or preservatives
-      "Flavored", // Infused with flavors like lemon or ginger
-      "Pure", // 100% natural, no blending
-
-      // 🌰 Dry Fruits Types
-      "Organic",
-      "Roasted",
-      "Salted",
-      "Unsalted",
-      "Plain",
-      "Flavored",
-      "Premium Grade",
-      "Regular Grade",
-    ],
-    description:
-      "The processing or quality type of the product (e.g., Raw, Organic, Wild, Roasted, Salted).",
+    description: "Weight in kilograms (for Shiprocket integration).",
   },
-
-  // Packaging type is important for food items
-  packaging: {
-    type: String,
-    enum: ["Jar", "Pouch", "Bottle", "Tin", "Box"],
-    default: "Pouch",
-    description: "The physical packaging of the variant.",
+  dimensions: {
+    length: { type: Number, default: 10 },
+    breadth: { type: Number, default: 10 },
+    height: { type: Number, default: 10 },
   },
-  price: { type: Number, required: true },
-  discount: { type: Number, default: 0 },
-  finalPrice: { type: Number },
-  stock: { type: Number, required: true },
-
+  type: String,
+  packaging: String,
+  price: Number,
+  discount: Number,
+  finalPrice: Number,
+  stock: Number,
+  sku: { type: String, required: true, unique: true },
   images: [String],
 });
 
