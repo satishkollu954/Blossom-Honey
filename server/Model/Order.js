@@ -1,3 +1,4 @@
+// server/Model/Order.js
 const mongoose = require("mongoose");
 
 const variantSchema = new mongoose.Schema(
@@ -16,12 +17,19 @@ const orderItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    variantId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    variantId: { type: mongoose.Schema.Types.ObjectId, ref: "Product.variants" },
     name: { type: String, required: true },
     variant: variantSchema,
     price: { type: Number, required: true },
     quantity: { type: Number, required: true },
     images: [String],
+    sku: String,
+    weightInKg: Number,
+    dimensions: {
+      length: Number,
+      breadth: Number,
+      height: Number,
+    },
   },
   { _id: false }
 );

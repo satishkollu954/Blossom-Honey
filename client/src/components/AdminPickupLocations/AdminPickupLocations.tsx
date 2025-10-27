@@ -14,6 +14,7 @@ interface Warehouse {
     state: string;
     pincode: string;
     pickupTime: string;
+    pickupLocationName: string;
 }
 
 const AdminPickupLocations: React.FC = () => {
@@ -30,6 +31,7 @@ const AdminPickupLocations: React.FC = () => {
         state: "",
         pincode: "",
         pickupTime: "",
+        pickupLocationName: "",
     });
 
     const [errors, setErrors] = useState<Partial<Record<keyof Warehouse, string>>>({});
@@ -81,6 +83,7 @@ const AdminPickupLocations: React.FC = () => {
             state: "",
             pincode: "",
             pickupTime: "",
+            pickupLocationName: "",
         });
         setEditing(null);
         setErrors({});

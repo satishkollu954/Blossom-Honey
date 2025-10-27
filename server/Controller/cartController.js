@@ -1,20 +1,29 @@
-//server/Controller/cartController.js
 const asyncHandler = require("express-async-handler");
 const Cart = require("../Model/Cart");
 const Product = require("../Model/Product");
-const Coupon = require("../Model/Coupon");
 const Order = require("../Model/Order");
+const User = require("../Model/User");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
-const { createShipmentWithShiprocket } = require("../utils/shiprocket");
-const User = require("../Model/User");
-const { markCouponUsed } = require("./couponController");
 const sendEmail = require("../utils/sendEmail");
 
-// --- Add to Cart ---
+// ✅ Razorpay initialization
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_SECRET,
+});
+
+// ======================================================
+// ADD TO CART
+// ======================================================
 const addToCart = asyncHandler(async (req, res) => {
   const { productId, variantId, quantity } = req.body;
   const userId = req.user._id;
+
+  if (!productId || !variantId || !quantity || quantity <= 0) {
+    res.status(400);
+    throw new Error("Invalid product or quantity");
+  }
 
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
@@ -23,9 +32,10 @@ const addToCart = asyncHandler(async (req, res) => {
   if (!variant) throw new Error("Variant not found");
   if (variant.stock < quantity) throw new Error("Insufficient stock");
 
-  let cart =
-    (await Cart.findOne({ user: userId })) ||
-    new Cart({ user: userId, items: [] });
+  let cart = await Cart.findOne({ user: userId });
+  if (!cart) {
+    cart = new Cart({ user: userId, items: [], totalAmount: 0 });
+  }
 
   const existing = cart.items.find(
     (i) =>
@@ -33,8 +43,12 @@ const addToCart = asyncHandler(async (req, res) => {
   );
 
   if (existing) {
-    existing.quantity += quantity;
-    existing.subtotal = existing.price * existing.quantity;
+    const newQty = existing.quantity + quantity;
+    if (newQty > variant.stock) {
+      throw new Error("Exceeds available stock");
+    }
+    existing.quantity = newQty;
+    existing.subtotal = existing.price * newQty;
   } else {
     cart.items.push({
       product: productId,
@@ -42,16 +56,20 @@ const addToCart = asyncHandler(async (req, res) => {
       quantity,
       weight: variant.weight,
       price: variant.finalPrice,
-      weight: variant.weight,
       subtotal: variant.finalPrice * quantity,
     });
   }
 
+  // ✅ Recalculate total
+  cart.totalAmount = cart.items.reduce((sum, i) => sum + i.subtotal, 0);
+
   await cart.save();
-  res.json({ message: "Added to cart", cart });
+  res.json({ message: "Item added to cart", cart });
 });
 
-// --- Get Cart ---
+// ======================================================
+// GET CART
+// ======================================================
 const getCart = asyncHandler(async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id })
     .populate("items.product")
@@ -95,9 +113,17 @@ const getCart = asyncHandler(async (req, res) => {
   res.json({ items: itemsArray, totalAmount: cart.totalAmount });
 });
 
-// --- Update Cart Item ---
+// ======================================================
+// UPDATE CART ITEM
+// ======================================================
 const updateCartItem = asyncHandler(async (req, res) => {
   const { productId, variantId, quantity } = req.body;
+
+  if (!productId || !variantId || !quantity || quantity <= 0) {
+    res.status(400);
+    throw new Error("Invalid input");
+  }
+
   const cart = await Cart.findOne({ user: req.user._id });
   if (!cart) throw new Error("Cart not found");
 
@@ -108,14 +134,23 @@ const updateCartItem = asyncHandler(async (req, res) => {
   );
   if (!item) throw new Error("Item not found in cart");
 
+  const product = await Product.findById(productId);
+  const variant = product.variants.id(variantId);
+  if (!variant || variant.stock < quantity) {
+    throw new Error("Insufficient stock");
+  }
+
   item.quantity = quantity;
   item.subtotal = item.price * quantity;
-  await cart.save();
+  cart.totalAmount = cart.items.reduce((sum, i) => sum + i.subtotal, 0);
 
+  await cart.save();
   res.json({ message: "Cart updated", cart });
 });
 
-// --- Remove Cart Item ---
+// ======================================================
+// REMOVE CART ITEM
+// ======================================================
 const removeCartItem = asyncHandler(async (req, res) => {
   const { productId, variantId } = req.params;
   const cart = await Cart.findOne({ user: req.user._id });
@@ -129,59 +164,23 @@ const removeCartItem = asyncHandler(async (req, res) => {
       )
   );
 
+  cart.totalAmount = cart.items.reduce((sum, i) => sum + i.subtotal, 0);
   await cart.save();
+
   res.json({ message: "Item removed", cart });
 });
 
-// --- Sync Guest Cart on Login ---
-const syncGuestCart = asyncHandler(async (req, res) => {
-  const { guestCartItems } = req.body;
-  let cart =
-    (await Cart.findOne({ user: req.user._id })) ||
-    new Cart({ user: req.user._id, items: [] });
-
-  for (const item of guestCartItems) {
-    const product = await Product.findById(item.productId);
-    if (!product) continue;
-    const variant = product.variants.id(item.variantId);
-    if (!variant || variant.stock <= 0) continue;
-
-    const existing = cart.items.find(
-      (i) =>
-        i.product.toString() === item.productId &&
-        i.variantId.toString() === item.variantId
-    );
-
-    if (existing) {
-      existing.quantity += item.quantity;
-      existing.subtotal = existing.price * existing.quantity;
-    } else {
-      cart.items.push({
-        product: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        price: variant.finalPrice,
-        subtotal: variant.finalPrice * item.quantity,
-      });
-    }
-  }
-
-  await cart.save();
-  res.json({ message: "Cart synced", cart });
-});
-
-// --- Checkout Cart → Create Order ---
-
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_SECRET,
-});
-
-// --- Checkout & Create Razorpay Order (Online) OR COD ---
+// ======================================================
+// CHECKOUT (COD or Online Payment)
+// ======================================================
 const checkout = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { address, paymentType } = req.body;
+
+  if (!address || !paymentType) {
+    res.status(400);
+    throw new Error("Missing address or payment type");
+  }
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -192,12 +191,15 @@ const checkout = asyncHandler(async (req, res) => {
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
   if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
 
+  // ✅ Check stock
   for (const item of cart.items) {
     const variant = item.product.variants.id(item.variantId);
-    if (!variant || variant.stock < item.quantity)
+    if (!variant || variant.stock < item.quantity) {
       throw new Error(`${item.product.name} variant out of stock`);
+    }
   }
 
+  // ✅ Prepare order structure
   const orderProducts = cart.items.map((item) => {
     const variant = item.product.variants.id(item.variantId);
     return {
@@ -220,70 +222,52 @@ const checkout = asyncHandler(async (req, res) => {
     products: orderProducts,
     shippingAddress,
     totalAmount: cart.totalAmount,
-    paymentType: paymentType || "Online",
+    paymentType: paymentType,
     paymentStatus: "Pending",
-    coupon: cart.coupon,
-    discountAmount: cart.discountAmount,
+    coupon: cart.coupon || null,
+    discountAmount: cart.discountAmount || 0,
   });
 
+  // ---- COD ----
   if (paymentType === "COD") {
     order.status = "Placed";
     order.paymentStatus = "Pending";
     await order.save();
 
-    // Decrease stock
+    // ✅ Decrease stock safely
     for (const item of cart.items) {
       const variant = item.product.variants.id(item.variantId);
       variant.stock -= item.quantity;
       await item.product.save();
     }
-    
 
-    // Clear cart
+    // ✅ Clear cart
     cart.items = [];
     cart.totalAmount = 0;
     cart.coupon = null;
     cart.discountAmount = 0;
     await cart.save();
 
-    // ---------------- SEND EMAILS ----------------
-    const orderSummary = order.products
-      .map(
-        (item) => `<li>${item.name} × ${item.quantity} – ₹${item.price}</li>`
-      )
-      .join("");
-
+    // ✅ Send confirmation email
     await sendEmail({
       to: user.email,
-      subject: `Your Order #${order._id} Placed Successfully - Blossom Honey 🍯`,
-      html: generateOrderEmail(
-        user.name,
-        order._id,
-        order.products,
-        order.totalAmount
-      ),
-    });
-
-    // Admin email (simpler version)
-    await sendEmail({
-      to: process.env.ADMIN_EMAIL,
-      subject: `New Order Placed #${order._id}`,
-      html: generateAdminOrderEmail(user, order),
+      subject: `Order #${order._id} Placed Successfully - Blossom Honey 🍯`,
+      html: `<p>Hi ${user.name}, your COD order <b>#${order._id}</b> has been placed successfully!</p>`,
     });
 
     return res.json({ message: "COD Order placed successfully", order });
   }
 
-  // For Online payment, just create order and proceed to payment
+  // ---- Online Payment ----
   await order.save();
   const options = {
-    amount: order.totalAmount * 100,
+    amount: Math.round(order.totalAmount * 100), // in paise
     currency: "INR",
     receipt: order._id.toString(),
     payment_capture: 1,
   };
-  const razorpayOrder = await razorpay.orders.create(options);
 
+  const razorpayOrder = await razorpay.orders.create(options);
   res.json({
     message: "Order created, proceed to payment",
     orderId: order._id,
@@ -291,206 +275,9 @@ const checkout = asyncHandler(async (req, res) => {
   });
 });
 
-const generateAdminOrderEmail = (user, order) => {
-  const orderItems = order.products
-    .map(
-      (item) => `
-      <tr>
-        <td style="padding:10px; border-bottom:1px solid #eee;">
-          <img src="${
-            item.images[0] || "https://via.placeholder.com/60"
-          }" alt="${
-        item.name
-      }" width="60" style="border-radius:5px; object-fit:cover;" />
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ${item.name} (${item.variant.weight || ""} ${
-        item.variant.type || ""
-      } ${item.variant.packaging || ""})
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ${item.quantity} × ₹${item.price}
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ₹${item.price * item.quantity}
-        </td>
-      </tr>
-    `
-    )
-    .join("");
-
-  return `
-  <div style="font-family:Arial,sans-serif; max-width:700px; margin:auto; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-    <!-- Header -->
-    <div style="background:#fbbf24; color:#fff; padding:20px; text-align:center;">
-      <h1 style="margin:0; font-size:24px;">Blossom Honey Admin</h1>
-      <p style="margin:5px 0 0; font-size:16px;">New Order Notification</p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:20px; color:#555;">
-      <p>Hi Admin,</p>
-      <p>A new order <strong>#${
-        order._id
-      }</strong> has been placed by <strong>${user.name}</strong> (${
-    user.email
-  }).</p>
-
-      <h3 style="margin-top:20px; color:#333; font-size:18px;">Customer Information</h3>
-      <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; color:#555;">
-        <tr>
-          <td style="padding:5px; font-weight:bold;">Name</td>
-          <td style="padding:5px;">${user.name}</td>
-        </tr>
-        <tr>
-          <td style="padding:5px; font-weight:bold;">Email</td>
-          <td style="padding:5px;">${user.email}</td>
-        </tr>
-        <tr>
-          <td style="padding:5px; font-weight:bold;">Phone</td>
-          <td style="padding:5px;">${order.shippingAddress.phone}</td>
-        </tr>
-      </table>
-
-      <h3 style="margin-top:20px; color:#333; font-size:18px;">Shipping Address</h3>
-      <p style="margin:5px 0; font-size:14px; color:#555;">
-        ${order.shippingAddress.fullName}<br/>
-        ${order.shippingAddress.houseNo}, ${order.shippingAddress.street}<br/>
-        ${order.shippingAddress.city}, ${order.shippingAddress.state} - ${
-    order.shippingAddress.pincode
-  }<br/>
-        Phone: ${order.shippingAddress.phone}
-      </p>
-
-      <h3 style="margin-top:20px; color:#333; font-size:18px;">Order Summary</h3>
-      <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-        <thead>
-          <tr style="background:#f9f9f9;">
-            <th style="padding:10px; text-align:left;">Product</th>
-            <th style="padding:10px; text-align:left;">Details</th>
-            <th style="padding:10px; text-align:left;">Qty</th>
-            <th style="padding:10px; text-align:left;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${orderItems}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3" style="padding:10px; text-align:right; font-weight:bold;">Total Amount</td>
-            <td style="padding:10px; font-weight:bold;">₹${
-              order.totalAmount
-            }</td>
-          </tr>
-          <tr>
-            <td colspan="3" style="padding:10px; text-align:right; font-weight:bold;">Payment Type</td>
-            <td style="padding:10px; font-weight:bold;">${
-              order.paymentType
-            }</td>
-          </tr>
-          <tr>
-            <td colspan="3" style="padding:10px; text-align:right; font-weight:bold;">Payment Status</td>
-            <td style="padding:10px; font-weight:bold;">${
-              order.paymentStatus
-            }</td>
-          </tr>
-        </tfoot>
-      </table>
-
-      <p style="margin-top:20px; font-size:14px;">Please process the order promptly. You can view and manage this order in the admin panel.</p>
-
-      <a href="http://localhost:5174" 
-        style="display:inline-block; background:#fbbf24; color:#fff; text-decoration:none; padding:12px 20px; border-radius:6px; font-weight:bold; margin-top:10px;">
-        View Order in Admin Panel
-      </a>
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#f9f9f9; padding:15px; text-align:center; font-size:12px; color:#999;">
-      &copy; ${new Date().getFullYear()} Blossom Honey. All rights reserved.
-    </div>
-  </div>
-  `;
-};
-
-const generateOrderEmail = (userName, orderId, orderProducts, totalAmount) => {
-  const orderItems = orderProducts
-    .map(
-      (item) => `
-      <tr>
-        <td style="padding:10px; border-bottom:1px solid #eee;">
-          <img src="${
-            item.images[0] || "https://via.placeholder.com/60"
-          }" alt="${
-        item.name
-      }" width="60" style="border-radius:5px; object-fit:cover;" />
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ${item.name} (${item.variant.weight || ""} ${
-        item.variant.type || ""
-      } ${item.variant.packaging || ""})
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ${item.quantity} × ₹${item.price}
-        </td>
-        <td style="padding:10px; border-bottom:1px solid #eee; font-family:Arial,sans-serif; font-size:14px; color:#555;">
-          ₹${item.price * item.quantity}
-        </td>
-      </tr>
-    `
-    )
-    .join("");
-
-  return `
-  <div style="font-family:Arial,sans-serif; max-width:600px; margin:auto; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-    <!-- Header -->
-    <div style="background:#fbbf24; color:#fff; padding:20px; text-align:center;">
-      <h1 style="margin:0; font-size:24px;">Blossom Honey 🍯</h1>
-      <p style="margin:5px 0 0; font-size:16px;">Order Confirmation</p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:20px; color:#555;">
-      <p>Hi <strong>${userName}</strong>,</p>
-      <p>Thank you for your order! Your order <strong>#${orderId}</strong> has been placed successfully. We’re excited to get it to you soon.</p>
-
-      <h3 style="margin-top:20px; color:#333; font-size:18px;">Order Summary</h3>
-      <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-        <thead>
-          <tr style="background:#f9f9f9;">
-            <th style="padding:10px; text-align:left;">Product</th>
-            <th style="padding:10px; text-align:left;">Details</th>
-            <th style="padding:10px; text-align:left;">Qty</th>
-            <th style="padding:10px; text-align:left;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${orderItems}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3" style="padding:10px; text-align:right; font-weight:bold;">Total</td>
-            <td style="padding:10px; font-weight:bold;">₹${totalAmount}</td>
-          </tr>
-        </tfoot>
-      </table>
-
-      <p style="margin-top:20px;">You can track your order status in your account or contact us for any queries.</p>
-
-    
-
-      <p style="margin-top:30px; font-size:12px; color:#999;">If you did not place this order, please contact us immediately.</p>
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#f9f9f9; padding:15px; text-align:center; font-size:12px; color:#999;">
-      &copy; ${new Date().getFullYear()} Blossom Honey. All rights reserved.
-    </div>
-  </div>
-  `;
-};
-
-// --- Verify Online Payment ---
+// ======================================================
+// VERIFY ONLINE PAYMENT
+// ======================================================
 const verifyOnlinePayment = asyncHandler(async (req, res) => {
   const {
     razorpay_order_id,
@@ -509,49 +296,39 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
     .digest("hex");
 
   if (expectedSignature !== razorpay_signature) {
-    // Restore stock on failure
-    for (const item of order.products) {
-      const product = await Product.findById(item.product);
-      const variant = product.variants.id(item.variantId);
-      variant.stock += item.quantity;
-      await product.save();
-    }
     res.status(400);
     throw new Error("Payment verification failed");
   }
 
-  // Payment successful
+  // ✅ Update payment + stock
   order.paymentStatus = "Paid";
   order.status = "Placed";
   order.razorpayPaymentId = razorpay_payment_id;
   await order.save();
 
-  const user = order.user;
+  for (const item of order.products) {
+    const product = await Product.findById(item.product);
+    const variant = product.variants.id(item.variantId);
+    if (variant) {
+      variant.stock -= item.quantity;
+      await product.save();
+    }
+  }
 
-  const orderSummary = order.products
-    .map((item) => `<li>${item.name} × ${item.quantity} – ₹${item.price}</li>`)
-    .join("");
+  // ✅ Clear cart
+  await Cart.findOneAndUpdate(
+    { user: order.user._id },
+    { $set: { items: [], totalAmount: 0, coupon: null, discountAmount: 0 } }
+  );
 
-  // User email
+  // ✅ Send confirmation email
   await sendEmail({
-    to: user.email,
-    subject: `Your Order #${order._id} Placed Successfully - Blossom Honey 🍯`,
-    html: generateOrderEmail(
-      user.name,
-      order._id,
-      order.products,
-      order.totalAmount
-    ),
+    to: order.user.email,
+    subject: `Payment Successful - Order #${order._id}`,
+    html: `<p>Hi ${order.user.name}, your payment was successful and your order <b>#${order._id}</b> has been placed!</p>`,
   });
 
-  // Admin email (simpler version)
-  await sendEmail({
-    to: process.env.ADMIN_EMAIL,
-    subject: `New Order Placed #${order._id}`,
-    html: generateAdminOrderEmail(user, order),
-  });
-
-  res.json({ message: "Payment successful, order placed", order });
+  res.json({ message: "Payment verified successfully", order });
 });
 
 module.exports = {
@@ -559,8 +336,6 @@ module.exports = {
   getCart,
   updateCartItem,
   removeCartItem,
-
-  syncGuestCart,
   checkout,
   verifyOnlinePayment,
 };
