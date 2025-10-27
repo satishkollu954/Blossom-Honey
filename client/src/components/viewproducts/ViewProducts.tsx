@@ -14,9 +14,15 @@ interface Variant {
     stock: number;
     images: string[];
     length: number;
-    width: number;
+    breadth: number;
     height: number;
+    dimensions: {
+        length: number;
+        breadth: number;
+        height: number;
+    };
 }
+
 
 
 interface Product {
@@ -107,6 +113,8 @@ export default function ViewProducts() {
 
         setActionLoading(productId);
         try {
+            console.log("===", productId);
+            console.log(JSON.stringify(newVariant));
             const res = await fetch(`${API_URL}/api/products/admin/${productId}/variant`, {
                 method: "POST",
                 headers: {
@@ -194,6 +202,7 @@ export default function ViewProducts() {
     const handleUpdateVariant = async (productId: string, variantId: string) => {
         setActionLoading(variantId);
         try {
+            console.log("===", variantId);
             const res = await fetch(
                 `${API_URL}/api/products/admin/${productId}/variant/${variantId}`,
                 {
@@ -596,7 +605,7 @@ export default function ViewProducts() {
                                                             type="number"
                                                             placeholder="L"
                                                             className="border p-2 rounded"
-                                                            defaultValue={v.length}
+                                                            defaultValue={v.dimensions.length}
                                                             onChange={(e) =>
                                                                 setEditedVariant({ ...editedVariant, length: +e.target.value })
                                                             }
@@ -605,16 +614,16 @@ export default function ViewProducts() {
                                                             type="number"
                                                             placeholder="W"
                                                             className="border p-2 rounded"
-                                                            defaultValue={v.width}
+                                                            defaultValue={v.dimensions.breadth}
                                                             onChange={(e) =>
-                                                                setEditedVariant({ ...editedVariant, width: +e.target.value })
+                                                                setEditedVariant({ ...editedVariant, breadth: +e.target.value })
                                                             }
                                                         />
                                                         <input
                                                             type="number"
                                                             placeholder="H"
                                                             className="border p-2 rounded"
-                                                            defaultValue={v.height}
+                                                            defaultValue={v.dimensions.height}
                                                             onChange={(e) =>
                                                                 setEditedVariant({ ...editedVariant, height: +e.target.value })
                                                             }
@@ -652,7 +661,7 @@ export default function ViewProducts() {
                                                         <p><span className="font-medium">Price:</span> ₹{v.price}</p>
                                                         <p><span className="font-medium">Discount:</span> {v.discount}%</p>
                                                         <p><span className="font-medium">Stock:</span> {v.stock}</p>
-                                                        <p><span className="font-medium">Size:</span> {v.length}×{v.width}×{v.height}</p>
+                                                        <p><span className="font-medium">Size:</span> {v.dimensions.length}×{v.dimensions.breadth}×{v.dimensions.height}</p>
                                                     </div>
 
                                                     {/* Actions */}
