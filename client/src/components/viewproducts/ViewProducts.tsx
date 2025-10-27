@@ -13,7 +13,11 @@ interface Variant {
     finalPrice: number;
     stock: number;
     images: string[];
+    length: number;
+    width: number;
+    height: number;
 }
+
 
 interface Product {
     _id: string;
@@ -27,6 +31,7 @@ interface Product {
     deliveryTime: string;
     isApproved: boolean;
 }
+
 
 export default function ViewProducts() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -54,6 +59,21 @@ export default function ViewProducts() {
         message: "",
     });
 
+
+    // ✅ Add inside the same file, just below other useState hooks
+    const [addingVariantFor, setAddingVariantFor] = useState<string | null>(null);
+    const [newVariant, setNewVariant] = useState({
+        weight: "",
+        type: "",
+        packaging: "Jar",
+        price: 0,
+        discount: 0,
+        stock: 0,
+        length: 0,
+        width: 0,
+        height: 0,
+    });
+
     function getProducts() {
         fetch(`${API_URL}/api/products/admin/`, {
             headers: { Authorization: `Bearer ${cookies.token}` },
@@ -71,6 +91,56 @@ export default function ViewProducts() {
         getProducts();
     }, [])
 
+
+    // ✅ Add Variant Handler
+    const handleAddVariant = async (productId: string) => {
+        if (
+            !newVariant.weight ||
+            !newVariant.type ||
+            !newVariant.packaging ||
+            newVariant.price <= 0 ||
+            newVariant.stock <= 0
+        ) {
+            toast.error("All fields are required and must be valid");
+            return;
+        }
+
+        setActionLoading(productId);
+        try {
+            const res = await fetch(`${API_URL}/api/products/admin/${productId}/variant`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${cookies.token}`,
+                },
+                body: JSON.stringify(newVariant),
+            });
+
+            if (res.status === 201) {
+                toast.success("Variant added successfully");
+                setAddingVariantFor(null);
+                setNewVariant({
+                    weight: "",
+                    type: "",
+                    packaging: "Jar",
+                    price: 0,
+                    discount: 0,
+                    stock: 0,
+                    length: 0,
+                    width: 0,
+                    height: 0,
+                });
+                getProducts();
+            } else {
+                toast.error("Failed to add variant");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Error adding variant");
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
 
     // Update product
@@ -406,154 +476,342 @@ export default function ViewProducts() {
                                 )}
                             </div>
 
+                            {/* Variants Section */}
+                            <div className="mt-6">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-semibold text-gray-700 text-lg">Variants</h3>
+                                    {addingVariantFor === product._id ? (
+                                        <button
+                                            onClick={() => setAddingVariantFor(null)}
+                                            className="text-sm bg-gray-400 text-white px-3 py-1 rounded"
+                                        >
+                                            Cancel
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setAddingVariantFor(product._id)}
+                                            className="text-sm bg-amber-600 text-white px-3 py-1 rounded"
+                                        >
+                                            + Add Variant
+                                        </button>
+                                    )}
+                                </div>
 
-                            {/* Variants */}
-                            <div className="mt-4">
-                                <h3 className="font-semibold text-gray-700 mb-2">Variants</h3>
-                                <table className="min-w-full text-sm border border-gray-200">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            <th className="p-2 text-left">Weight</th>
-                                            <th className="p-2 text-left">Price</th>
-                                            <th className="p-2 text-left">Discount</th>
-                                            <th className="p-2 text-left">Stock</th>
-                                            <th className="p-2 text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {product.variants?.map((v) => (
-                                            <tr key={v._id} className="border-t">
-                                                {editVariantId === v._id ? (
-                                                    <>
-                                                        <td className="p-2">
-                                                            <select
-                                                                className="border p-1 rounded w-full"
-                                                                value={editedVariant.weight} // bind to editedVariant
-                                                                onChange={(e) =>
-                                                                    setEditedVariant({
-                                                                        ...editedVariant,
-                                                                        weight: e.target.value,
-                                                                    })
-                                                                }
-                                                            >
+                                {/* Existing Variants as Cards */}
+                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {product.variants?.map((v) => (
+                                        <div
+                                            key={v._id}
+                                            className="border rounded-xl bg-white p-4 shadow-sm hover:shadow-md transition"
+                                        >
+                                            {editVariantId === v._id ? (
+                                                <>
+                                                    {/* Editable Fields */}
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {/* Weight */}
+                                                        <select
+                                                            className="border p-2 rounded"
+                                                            value={editedVariant.weight}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, weight: e.target.value })
+                                                            }
+                                                        >
+                                                            <option value="">Weight</option>
+                                                            <option value="100g">100g</option>
+                                                            <option value="250g">250g</option>
+                                                            <option value="500g">500g</option>
+                                                            <option value="750g">750g</option>
+                                                            <option value="1kg">1kg</option>
+                                                            <option value="2kg">2kg</option>
+                                                            <option value="250ml">250ml</option>
+                                                            <option value="500ml">500ml</option>
+                                                            <option value="1L">1L</option>
+                                                        </select>
 
-                                                                <option value="100g">100g</option>
-                                                                <option value="250g">250g</option>
-                                                                <option value="500g">500g</option>
-                                                                <option value="750g">750g</option>
-                                                                <option value="1kg">1kg</option>
-                                                                <option value="2kg">2kg</option>
-                                                                <option value="250ml">250ml</option>
-                                                                <option value="500ml">500ml</option>
-                                                                <option value="1L">1L</option>
-                                                            </select>
+                                                        {/* Type */}
+                                                        <select
+                                                            className="border p-2 rounded"
+                                                            value={editedVariant.type}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, type: e.target.value })
+                                                            }
+                                                        >
+                                                            <option value="">Type</option>
+                                                            <option value="Raw">Raw</option>
+                                                            <option value="Organic">Organic</option>
+                                                            <option value="Wild">Wild</option>
+                                                            <option value="Natural">Natural</option>
+                                                            <option value="Flavored">Flavored</option>
+                                                            <option value="Pure">Pure</option>
+                                                            <option value="Roasted">Roasted</option>
+                                                            <option value="Salted">Salted</option>
+                                                            <option value="Unsalted">Unsalted</option>
+                                                            <option value="Plain">Plain</option>
+                                                        </select>
 
-                                                        </td>
-                                                        <td className="p-2">
-                                                            <input
-                                                                type="number"
-                                                                className="border p-1 rounded w-full"
-                                                                defaultValue={v.price}
-                                                                onChange={(e) =>
-                                                                    setEditedVariant({
-                                                                        ...editedVariant,
-                                                                        price: parseFloat(
-                                                                            e.target.value
-                                                                        ),
-                                                                    })
-                                                                }
-                                                            />
-                                                        </td>
-                                                        <td className="p-2">
-                                                            <input
-                                                                type="number"
-                                                                className="border p-1 rounded w-full"
-                                                                defaultValue={v.discount}
-                                                                onChange={(e) =>
-                                                                    setEditedVariant({
-                                                                        ...editedVariant,
-                                                                        discount: parseFloat(
-                                                                            e.target.value
-                                                                        ),
-                                                                    })
-                                                                }
-                                                            />
-                                                        </td>
-                                                        <td className="p-2">
-                                                            <input
-                                                                type="number"
-                                                                className="border p-1 rounded w-full"
-                                                                defaultValue={v.stock}
-                                                                onChange={(e) =>
-                                                                    setEditedVariant({
-                                                                        ...editedVariant,
-                                                                        stock: parseInt(
-                                                                            e.target.value
-                                                                        ),
-                                                                    })
-                                                                }
-                                                            />
-                                                        </td>
-                                                        <td className="p-2 text-center">
-                                                            <button
-                                                                disabled={actionLoading === v._id}
-                                                                onClick={() =>
-                                                                    handleUpdateVariant(
-                                                                        product._id,
-                                                                        v._id
-                                                                    )
-                                                                }
-                                                                className="bg-green-500 text-white px-3 py-1 rounded mr-2"
-                                                            >
-                                                                {actionLoading === v._id ? (
-                                                                    <Loader2
-                                                                        size={16}
-                                                                        className="animate-spin"
-                                                                    />
-                                                                ) : (
-                                                                    <Check size={16} />
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setEditVariantId(null)}
-                                                                className="bg-gray-400 text-white px-3 py-1 rounded"
-                                                            >
-                                                                <X size={16} />
-                                                            </button>
-                                                        </td>
-                                                    </>
+                                                        {/* Packaging */}
+                                                        <select
+                                                            className="border p-2 rounded col-span-2"
+                                                            value={editedVariant.packaging}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, packaging: e.target.value })
+                                                            }
+                                                        >
+                                                            <option value="">Packaging</option>
+                                                            <option value="Jar">Jar</option>
+                                                            <option value="Pouch">Pouch</option>
+                                                            <option value="Bottle">Bottle</option>
+                                                            <option value="Tin">Tin</option>
+                                                            <option value="Box">Box</option>
+                                                        </select>
+
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Price"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.price}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, price: +e.target.value })
+                                                            }
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Discount"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.discount}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, discount: +e.target.value })
+                                                            }
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Stock"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.stock}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, stock: +e.target.value })
+                                                            }
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="L"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.length}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, length: +e.target.value })
+                                                            }
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="W"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.width}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, width: +e.target.value })
+                                                            }
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="H"
+                                                            className="border p-2 rounded"
+                                                            defaultValue={v.height}
+                                                            onChange={(e) =>
+                                                                setEditedVariant({ ...editedVariant, height: +e.target.value })
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    {/* Save / Cancel */}
+                                                    <div className="flex justify-end gap-2 mt-3">
+                                                        <button
+                                                            disabled={actionLoading === v._id}
+                                                            onClick={() => handleUpdateVariant(product._id, v._id)}
+                                                            className="bg-green-500 text-white px-3 py-1 rounded"
+                                                        >
+                                                            {actionLoading === v._id ? (
+                                                                <Loader2 size={16} className="animate-spin" />
+                                                            ) : (
+                                                                <Check size={16} />
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditVariantId(null)}
+                                                            className="bg-gray-400 text-white px-3 py-1 rounded"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {/* Display Variant Details */}
+                                                    <div className="flex flex-wrap gap-1 text-sm text-gray-700">
+                                                        <p><span className="font-medium">Weight:</span> {v.weight}</p>
+                                                        <p><span className="font-medium">Type:</span> {v.type}</p>
+                                                        <p><span className="font-medium">Packaging:</span> {v.packaging}</p>
+                                                        <p><span className="font-medium">Price:</span> ₹{v.price}</p>
+                                                        <p><span className="font-medium">Discount:</span> {v.discount}%</p>
+                                                        <p><span className="font-medium">Stock:</span> {v.stock}</p>
+                                                        <p><span className="font-medium">Size:</span> {v.length}×{v.width}×{v.height}</p>
+                                                    </div>
+
+                                                    {/* Actions */}
+                                                    <div className="flex justify-end gap-3 mt-3">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditVariantId(v._id);
+                                                                setEditedVariant(v);
+                                                            }}
+                                                            className="text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => confirmDelete("variant", product._id, v._id)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Add Variant Form */}
+                                {addingVariantFor === product._id && (
+                                    <div className="border rounded-xl bg-gray-50 p-4 mt-4">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {/* Reuse same dropdowns */}
+                                            <select
+                                                className="border p-2 rounded"
+                                                value={newVariant.weight}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, weight: e.target.value })
+                                                }
+                                            >
+                                                <option value="">Select Weight</option>
+                                                <option value="100g">100g</option>
+                                                <option value="250g">250g</option>
+                                                <option value="500g">500g</option>
+                                                <option value="750g">750g</option>
+                                                <option value="1kg">1kg</option>
+                                                <option value="2kg">2kg</option>
+                                                <option value="250ml">250ml</option>
+                                                <option value="500ml">500ml</option>
+                                                <option value="1L">1L</option>
+                                            </select>
+
+                                            <select
+                                                className="border p-2 rounded"
+                                                value={newVariant.type}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, type: e.target.value })
+                                                }
+                                            >
+                                                <option value="">Select Type</option>
+                                                <option value="Raw">Raw</option>
+                                                <option value="Organic">Organic</option>
+                                                <option value="Wild">Wild</option>
+                                                <option value="Natural">Natural</option>
+                                                <option value="Flavored">Flavored</option>
+                                                <option value="Pure">Pure</option>
+                                                <option value="Roasted">Roasted</option>
+                                                <option value="Salted">Salted</option>
+                                                <option value="Unsalted">Unsalted</option>
+                                                <option value="Plain">Plain</option>
+                                            </select>
+
+                                            <select
+                                                className="border p-2 rounded col-span-2"
+                                                value={newVariant.packaging}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, packaging: e.target.value })
+                                                }
+                                            >
+                                                <option value="">Select Packaging</option>
+                                                <option value="Jar">Jar</option>
+                                                <option value="Pouch">Pouch</option>
+                                                <option value="Bottle">Bottle</option>
+                                                <option value="Tin">Tin</option>
+                                                <option value="Box">Box</option>
+                                            </select>
+
+                                            <input
+                                                type="number"
+                                                placeholder="Price"
+                                                className="border p-2 rounded"
+                                                value={newVariant.price || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, price: +e.target.value })
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="Discount"
+                                                className="border p-2 rounded"
+                                                value={newVariant.discount || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, discount: +e.target.value })
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="Stock"
+                                                className="border p-2 rounded"
+                                                value={newVariant.stock || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, stock: +e.target.value })
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="L"
+                                                className="border p-2 rounded"
+                                                value={newVariant.length || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, length: +e.target.value })
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="W"
+                                                className="border p-2 rounded"
+                                                value={newVariant.width || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, width: +e.target.value })
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="H"
+                                                className="border p-2 rounded"
+                                                value={newVariant.height || ""}
+                                                onChange={(e) =>
+                                                    setNewVariant({ ...newVariant, height: +e.target.value })
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-end mt-3">
+                                            <button
+                                                disabled={actionLoading === product._id}
+                                                onClick={() => handleAddVariant(product._id)}
+                                                className="bg-green-500 text-white px-4 py-2 rounded"
+                                            >
+                                                {actionLoading === product._id ? (
+                                                    <Loader2 size={16} className="animate-spin" />
                                                 ) : (
-                                                    <>
-                                                        <td className="p-2">{v.weight}</td>
-                                                        <td className="p-2">₹{v.price}</td>
-                                                        <td className="p-2">{v.discount}%</td>
-                                                        <td className="p-2">{v.stock}</td>
-                                                        <td className="p-2 text-center">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditVariantId(v._id);
-                                                                    setEditedVariant(v);
-                                                                }}
-                                                                className="text-blue-500 hover:text-blue-700 mr-3"
-                                                            >
-                                                                <Edit size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    confirmDelete("variant", product._id, v._id)
-                                                                }
-                                                                className="text-red-500 hover:text-red-700"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </td>
-                                                    </>
+                                                    "Add Variant"
                                                 )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
+
                         </div>
                     ))
                 )}
