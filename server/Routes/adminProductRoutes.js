@@ -11,6 +11,7 @@ const {
   getAllProductsAdminView,
   updateVariants,
   deleteVariant,
+  addVariant
 } = require("../Controller/productController");
 // Assuming these middleware functions exist
 const { protect, seller, admin } = require("../Middleware/authMiddleware");
@@ -58,6 +59,17 @@ router.put(
   seller,
   upload.fields([{ name: "variantImages", maxCount: 5 }]),
   updateVariants
+);
+
+// @desc    Add a new variant to a product
+// @route   POST /api/products/admin/:productId/variant
+// @access  Private/Seller
+router.post(
+  "/:productId/variant",
+  protect,
+  seller,
+  upload.fields([{ name: "variantImages", maxCount: 5 }]),
+  addVariant
 );
 
 router.delete("/:productId/variant/:variantId", protect, seller, deleteVariant);

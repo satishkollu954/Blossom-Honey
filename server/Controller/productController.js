@@ -283,6 +283,94 @@ const updateProduct = asyncHandler(async (req, res) => {
   });
 });
 
+const addVariant = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  let variantsData = [];
+  try {
+    variantsData =
+      typeof req.body.variants === "string"
+        ? JSON.parse(req.body.variants)
+        : req.body.variants;
+  } catch (err) {
+    res.status(400);
+    throw new Error("Invalid variants data format");
+  }
+
+  if (!Array.isArray(variantsData) || variantsData.length === 0) {
+    res.status(400);
+    throw new Error("Variants should be a non-empty array");
+  }
+
+  const flatImages = req.files?.variantImages || [];
+  let imageIndex = 0;
+
+  // ✅ Loop through each variant to add
+  for (const variantData of variantsData) {
+    // Generate unique SKU if not provided
+    const variantSku =
+      variantData.sku ||
+      `${product.sku}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    // Convert weight → kg
+    const weightInKg = convertWeightToKg(variantData.weight);
+
+    // Calculate final price
+    const finalPrice = Math.round(
+      variantData.price -
+        (variantData.price * (variantData.discount || 0)) / 100
+    );
+
+    // --- Handle variant images ---
+    const uploadedImages = [];
+    if (variantData.numImages && flatImages.length > imageIndex) {
+      for (let i = 0; i < variantData.numImages; i++) {
+        const file = flatImages[imageIndex];
+        if (!file) break;
+
+        const url = createUploader(
+          file.buffer,
+          `BlossomHoney/products/${productId}/variants/new-${Date.now()}`,
+          file.originalname.split(".")[0] + "-" + Date.now(),
+          "image"
+        );
+        uploadedImages.push(url);
+        imageIndex++;
+      }
+    }
+
+    // --- Create new variant object ---
+    const newVariant = {
+      weight: variantData.weight,
+      weightInKg,
+      type: variantData.type,
+      packaging: variantData.packaging,
+      price: variantData.price,
+      discount: variantData.discount || 0,
+      finalPrice,
+      stock: variantData.stock,
+      sku: variantSku,
+      images: uploadedImages,
+    };
+
+    product.variants.push(newVariant);
+  }
+
+  await product.save();
+
+  res.status(201).json({
+    message: "✅ Variant(s) added successfully",
+    variants: product.variants,
+  });
+});
+
+
 // ===============================================================
 // ✅ UPDATE VARIANTS (Images Only)
 // ===============================================================
@@ -503,6 +591,7 @@ module.exports = {
   deleteProduct,
   approveProduct,
   getAllProductsAdminView,
+  addVariant,
   updateVariants,
   deleteVariant,
   getProductsByCategory,
