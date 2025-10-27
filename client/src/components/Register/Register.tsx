@@ -42,7 +42,7 @@ export function UserRegister() {
         validationSchema: UserRegisterSchema,
         onSubmit: (values) => {
             setIsLoading(true);
-            console.log('User Registration Attempt:', values);
+
 
             // We only send the required data to the backend (excluding confirmPassword)
             const { name, email, password } = values;

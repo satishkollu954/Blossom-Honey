@@ -7,11 +7,14 @@ import "react-toastify/dist/ReactToastify.css";
 
 interface Variant {
     weight: string;
+    weightInKg?: number;
+    dimensions: { length: number; breadth: number; height: number };
     type: string;
     packaging: string;
     price: number;
     discount: number;
     stock: number;
+    sku?: string;
     images: File[];
     previewImages?: string[];
 }
@@ -25,13 +28,12 @@ interface Product {
     tags: string;
     variants: Variant[];
     images: File[];
-    imagesPreview?: string[];
+    imagesPreview: string[];
 }
 
 const UploadProduct: React.FC = () => {
     const [cookies] = useCookies(["token"]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     const [product, setProduct] = useState<Product>({
@@ -53,13 +55,21 @@ const UploadProduct: React.FC = () => {
         price: 0,
         discount: 0,
         stock: 0,
+        sku: "",
+        dimensions: { length: 10, breadth: 10, height: 10 },
         images: [],
         previewImages: [],
     });
 
-    // ===========================
-    // Product Images
-    // ===========================
+    // 🟡 Handle product field change
+    const handleProductChange = (
+        e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    ) => {
+        const { name, value } = e.target;
+        setProduct((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // 🟡 Product images
     const handleProductImages = (e: ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
         const files = Array.from(e.target.files);
@@ -72,17 +82,13 @@ const UploadProduct: React.FC = () => {
         }));
     };
 
-    // ===========================
-    // Handle Variant Change
-    // ===========================
+    // 🟡 Variant change
     const handleVariantChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setVariant((prev) => ({ ...prev, [name]: value }));
     };
 
-    // ===========================
-    // Add Variant
-    // ===========================
+    // 🟡 Add variant
     const addVariant = () => {
         const { weight, type, packaging, price, discount, stock } = variant;
 
@@ -90,16 +96,16 @@ const UploadProduct: React.FC = () => {
             toast.warning("Please fill all variant fields");
             return;
         }
-
         if (price <= 0 || discount <= 0 || discount > 100 || stock <= 0) {
             toast.error("Price, Stock, and Discount must be greater than 0, and Discount ≤ 100");
             return;
         }
 
-
-        // Check for duplicate variant
         const duplicate = product.variants.some(
-            (v) => v.weight === weight && v.type.toLowerCase() === type.toLowerCase() && v.packaging === packaging
+            (v) =>
+                v.weight === weight &&
+                v.type.toLowerCase() === type.toLowerCase() &&
+                v.packaging === packaging
         );
         if (duplicate) {
             toast.warning("This variant already exists");
@@ -119,35 +125,27 @@ const UploadProduct: React.FC = () => {
             price: 0,
             discount: 0,
             stock: 0,
+            sku: "",
+            dimensions: { length: 10, breadth: 10, height: 10 },
             images: [],
             previewImages: [],
         });
     };
 
-    const handleProductChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setProduct((prev) => ({ ...prev, [name]: value }));
-    };
-
+    // 🟡 Submit product
     const handleSubmit = async () => {
         const { name, description, category, images, variants } = product;
 
-        // Validation
         if (!name || !description || images.length === 0 || variants.length === 0) {
             toast.error("Please fill all product fields and add at least one variant");
             return;
         }
 
-        // Check duplicate variant names
-        const uniqueVariants = new Set(variants.map((v) => `${v.weight}-${v.type}-${v.packaging}`));
+        const uniqueVariants = new Set(
+            variants.map((v) => `${v.weight}-${v.type}-${v.packaging}`)
+        );
         if (uniqueVariants.size !== variants.length) {
             toast.error("Duplicate variants detected");
-            return;
-        }
-
-
-        if (name.toLowerCase() === "blossom honey") {
-            toast.error("This product already exists!");
             return;
         }
 
@@ -333,6 +331,50 @@ const UploadProduct: React.FC = () => {
                         onChange={handleVariantChange}
                         className="border p-3 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
                     />
+
+
+                    <div className="grid grid-cols-3 gap-2">
+                        <input
+                            type="number"
+                            name="length"
+                            placeholder="Length (cm)"
+                            value={variant.dimensions.length}
+                            onChange={(e) =>
+                                setVariant((prev) => ({
+                                    ...prev,
+                                    dimensions: { ...prev.dimensions, length: Number(e.target.value) },
+                                }))
+                            }
+                            className="border p-3 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
+                        />
+                        <input
+                            type="number"
+                            name="breadth"
+                            placeholder="Breadth (cm)"
+                            value={variant.dimensions.breadth}
+                            onChange={(e) =>
+                                setVariant((prev) => ({
+                                    ...prev,
+                                    dimensions: { ...prev.dimensions, breadth: Number(e.target.value) },
+                                }))
+                            }
+                            className="border p-3 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
+                        />
+                        <input
+                            type="number"
+                            name="height"
+                            placeholder="Height (cm)"
+                            value={variant.dimensions.height}
+                            onChange={(e) =>
+                                setVariant((prev) => ({
+                                    ...prev,
+                                    dimensions: { ...prev.dimensions, height: Number(e.target.value) },
+                                }))
+                            }
+                            className="border p-3 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
+                        />
+                    </div>
+
                 </div>
 
                 <button
