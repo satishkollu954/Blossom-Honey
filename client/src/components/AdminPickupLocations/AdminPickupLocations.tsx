@@ -123,9 +123,11 @@ const AdminPickupLocations: React.FC = () => {
             state: wh.state,
             pincode: wh.pincode,
             pickupTime: wh.pickupTime,
+            pickupLocationName: wh.pickupLocationName || "",
         });
         setErrors({});
     };
+
 
 
     const handleDelete = async (id: string) => {
