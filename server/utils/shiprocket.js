@@ -1,3 +1,4 @@
+// server/utils/shiprocket.js
 const axios = require("axios");
 const Order = require("../Model/Order");
 const Warehouse = require("../Model/Warehouse");
@@ -26,14 +27,18 @@ class Shiprocket {
 
   async getShiprocketToken() {
     const now = new Date();
-    if (this.token && this.tokenExpiry && now < this.tokenExpiry) return this.token;
+    if (this.token && this.tokenExpiry && now < this.tokenExpiry)
+      return this.token;
 
     console.log("Refreshing Shiprocket token...");
     return this.retryRequest(async () => {
-      const res = await axios.post("https://apiv2.shiprocket.in/v1/external/auth/login", {
-        email: SHIPROCKET_EMAIL,
-        password: SHIPROCKET_PASSWORD,
-      });
+      const res = await axios.post(
+        "https://apiv2.shiprocket.in/v1/external/auth/login",
+        {
+          email: SHIPROCKET_EMAIL,
+          password: SHIPROCKET_PASSWORD,
+        }
+      );
       this.token = res.data.token;
       this.tokenExpiry = new Date(now.getTime() + 23 * 60 * 60 * 1000);
       console.log("✅ Shiprocket token refreshed");
@@ -42,9 +47,9 @@ class Shiprocket {
   }
 
   buildAddress(addr) {
-    return `${addr.houseNo || ""}, ${addr.street || ""}, ${addr.city || ""}, ${addr.state || ""}, ${
-      addr.postalCode || ""
-    }`
+    return `${addr.houseNo || ""}, ${addr.street || ""}, ${addr.city || ""}, ${
+      addr.state || ""
+    }, ${addr.postalCode || ""}`
       .replace(/,\s*,/g, ",")
       .replace(/^, |, $/g, "")
       .trim();
@@ -59,7 +64,9 @@ class Shiprocket {
 
     // ✅ Calculate total weight and largest box dimensions
     let totalWeight = 0;
-    let maxLength = 0, maxBreadth = 0, maxHeight = 0;
+    let maxLength = 0,
+      maxBreadth = 0,
+      maxHeight = 0;
 
     const orderItems = order.products.map((item) => {
       totalWeight += (item.weightInKg || 0.5) * item.quantity;
@@ -75,7 +82,7 @@ class Shiprocket {
       };
     });
 
-  if(totalWeight <= 0) totalWeight = 0.5; // minimum 500g
+    if (totalWeight <= 0) totalWeight = 0.5; // minimum 500g
     const dimensions = {
       length: maxLength || 10,
       breadth: maxBreadth || 10,
@@ -133,11 +140,85 @@ class Shiprocket {
       deliveryAddress: this.buildAddress(order.shippingAddress),
       estimatedDeliveryDate: data.estimated_delivery_date,
     };
-   await order.save();
+    await order.save();
     return data;
+  }
+  async cancelShiprocketOrder(orderIds) {
+    if (!Array.isArray(orderIds)) orderIds = [orderIds]; // Ensure it's always an array
+
+    const token = await this.getShiprocketToken();
+
+    const data = {
+      ids: orderIds,
+    };
+
+    try {
+      const res = await axios.post(
+        "https://apiv2.shiprocket.in/v1/external/orders/cancel",
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("✅ Shiprocket order(s) cancelled:", res.data);
+      return res.data;
+    } catch (error) {
+      console.error(
+        "❌ Shiprocket cancellation failed:",
+        error.response?.data || error.message
+      );
+      throw new Error("Shiprocket order cancellation failed");
+    }
+  }
+
+  // ================== ASSIGN AWB ==================
+  async assignAWB(shipmentId, courierId) {
+    const token = await this.getShiprocketToken();
+
+    const data = {
+      shipment_id: shipmentId,
+      courier_id: courierId,
+    };
+
+    const res = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("✅ AWB assigned:", res.data);
+    return res.data;
+  }
+
+  // ================== TRACK SHIPMENT ==================
+  async trackShipment(shipmentId) {
+    const token = await this.getShiprocketToken();
+
+    const res = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/track/shipment/${shipmentId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    console.log("🚚 Tracking details:", res.data);
+    return res.data;
   }
 }
 const shiprocket = new Shiprocket();
 module.exports = {
-  createShipmentWithShiprocket: shiprocket.createShipmentWithShiprocket.bind(shiprocket),
+  createShipmentWithShiprocket:
+    shiprocket.createShipmentWithShiprocket.bind(shiprocket),
+  cancelShiprocketOrder: shiprocket.cancelShiprocketOrder.bind(shiprocket),
+  assignAWB: shiprocket.assignAWB.bind(shiprocket),
+  trackShipment: shiprocket.trackShipment.bind(shiprocket),
 };

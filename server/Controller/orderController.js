@@ -5,7 +5,11 @@ const User = require("../Model/User");
 const Product = require("../Model/Product");
 const Warehouse = require("../Model/Warehouse");
 const sendEmail = require("../utils/sendEmail");
-const { createShipmentWithShiprocket } = require("../utils/shiprocket");
+const {
+  createShipmentWithShiprocket,
+  cancelShiprocketOrder,
+  assignAWB,
+} = require("../utils/shiprocket");
 const Razorpay = require("razorpay");
 
 // ---------------------- USER CONTROLLERS ---------------------- //
@@ -91,9 +95,23 @@ const cancelOrder = asyncHandler(async (req, res) => {
     throw new Error("Order not found");
   }
 
-  if (["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)) {
+  if (
+    ["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)
+  ) {
     res.status(400);
-    throw new Error(`Order cannot be cancelled. Current status: ${order.status}`);
+    throw new Error(
+      `Order cannot be cancelled. Current status: ${order.status}`
+    );
+  }
+  console.log("Order delivery info:", order.delivery.shipmentId);
+  // ✅ Cancel in Shiprocket if shipment exists
+  if (order.delivery?.shipmentId) {
+    try {
+      await cancelShiprocketOrder([order.delivery.shipmentId]);
+    } catch (err) {
+      console.error("Shiprocket cancel failed:", err.message);
+      // Optional: you can still continue cancelling locally even if Shiprocket fails
+    }
   }
 
   // ✅ Refund for online payments
@@ -146,7 +164,9 @@ const cancelOrder = asyncHandler(async (req, res) => {
           </div>
           <div style="padding: 30px;">
             <p>Hi <strong>${order.user.name}</strong>,</p>
-            <p>Your order <strong>#${order._id}</strong> has been successfully cancelled.</p>
+            <p>Your order <strong>#${
+              order._id
+            }</strong> has been successfully cancelled.</p>
             <ul>
               ${order.products
                 .map(
@@ -194,6 +214,54 @@ const getOrderById = asyncHandler(async (req, res) => {
   res.json(order);
 });
 
+const assignOrderAWB = asyncHandler(async (req, res) => {
+  const orderId = req.params.id;
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  // ✅ Ensure shipment exists first
+  const shipmentId = order.delivery?.shipmentId;
+  if (!shipmentId) {
+    res.status(400);
+    throw new Error("Shipment not found for this order");
+  }
+
+  try {
+    // Optional: if you have a preferred courierId saved in warehouse
+    const warehouse = await Warehouse.findOne();
+    const courierId = warehouse?.preferredCourierId || null; // You can also leave it null for auto-assignment
+
+    // ✅ Assign AWB using Shiprocket utility
+    const result = await assignAWB(shipmentId, courierId);
+
+    // ✅ Update order delivery info
+    order.delivery.awbNumber =
+      result.response?.data?.awb_code ||
+      result.awb_code ||
+      order.delivery.awbNumber;
+    order.delivery.deliveryStatus = "AWB Assigned";
+    await order.save();
+
+    console.log("✅ AWB successfully assigned:", result);
+    res.json({
+      success: true,
+      message: "AWB assigned successfully",
+      awbData: result,
+    });
+  } catch (error) {
+    console.error("❌ Error assigning AWB:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to assign AWB",
+      error: error.message,
+    });
+  }
+});
+
 // ✅ Update order status
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
@@ -221,6 +289,19 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
     try {
       await createShipmentWithShiprocket(order._id, warehouse._id);
+
+      // 2️⃣ Assign AWB only after shipment created
+      const updatedOrder = await Order.findById(order._id);
+      if (
+        updatedOrder.delivery?.shipmentId &&
+        !updatedOrder.delivery?.awbNumber
+      ) {
+        console.log(
+          "📦 Assigning AWB for shipment:",
+          updatedOrder.delivery.shipmentId
+        );
+        await assignOrderAWB({ params: { id: order._id } });
+      }
     } catch (err) {
       console.error("Shiprocket Error:", err.message);
     }

@@ -11,7 +11,7 @@ const {
   getAllProductsAdminView,
   updateVariants,
   deleteVariant,
-  addVariant
+  addVariant,
 } = require("../Controller/productController");
 // Assuming these middleware functions exist
 const { protect, seller, admin } = require("../Middleware/authMiddleware");
