@@ -13,9 +13,6 @@ interface Variant {
     finalPrice: number;
     stock: number;
     images: string[];
-    length: number;
-    breadth: number;
-    height: number;
     dimensions: {
         length: number;
         breadth: number;
@@ -236,6 +233,7 @@ export default function ViewProducts() {
                     )
                 );
                 toast.success("Variant updated successfully");
+                getProducts();
                 setEditVariantId(null);
             } else toast.error("Failed to update variant");
         } catch {
@@ -244,6 +242,10 @@ export default function ViewProducts() {
             setActionLoading(null);
         }
     };
+
+    useEffect(() => {
+        getProducts();
+    }, [])
 
     // Delete product
     const handleDeleteProduct = async (id: string) => {
@@ -344,6 +346,21 @@ export default function ViewProducts() {
                 <p className="ml-3 text-amber-700 font-medium">Loading products...</p>
             </div>
         );
+
+
+
+    const handleDimensionChange = (key: keyof Variant["dimensions"], value: number) => {
+        setEditedVariant((prev) => ({
+            ...prev,
+            dimensions: {
+                length: prev.dimensions?.length ?? 0,
+                breadth: prev.dimensions?.breadth ?? 0,
+                height: prev.dimensions?.height ?? 0,
+                [key]: value,
+            },
+        }));
+    };
+
 
     return (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
@@ -606,28 +623,26 @@ export default function ViewProducts() {
                                                             placeholder="L"
                                                             className="border p-2 rounded"
                                                             defaultValue={v.dimensions.length}
-                                                            onChange={(e) =>
-                                                                setEditedVariant({ ...editedVariant, length: +e.target.value })
-                                                            }
+                                                            onChange={(e) => handleDimensionChange("length", +e.target.value)}
                                                         />
+
                                                         <input
                                                             type="number"
                                                             placeholder="W"
                                                             className="border p-2 rounded"
                                                             defaultValue={v.dimensions.breadth}
-                                                            onChange={(e) =>
-                                                                setEditedVariant({ ...editedVariant, breadth: +e.target.value })
-                                                            }
+                                                            onChange={(e) => handleDimensionChange("length", +e.target.value)}
                                                         />
+
                                                         <input
                                                             type="number"
                                                             placeholder="H"
                                                             className="border p-2 rounded"
                                                             defaultValue={v.dimensions.height}
-                                                            onChange={(e) =>
-                                                                setEditedVariant({ ...editedVariant, height: +e.target.value })
-                                                            }
+                                                            onChange={(e) => handleDimensionChange("length", +e.target.value)}
+
                                                         />
+
                                                     </div>
 
                                                     {/* Save / Cancel */}

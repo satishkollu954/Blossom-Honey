@@ -413,12 +413,12 @@ const updateVariants = asyncHandler(async (req, res) => {
   if (update.discount !== undefined) variant.discount = update.discount;
   if (update.stock !== undefined) variant.stock = update.stock;
   if (update.sku) variant.sku = update.sku;
-  if (update.dimensions || update.length || update.width || update.height) {
+  if (update.dimensions || update.length || update.breadth || update.height) {
     variant.dimensions = {
       length:
         update.length ?? update.dimensions?.length ?? variant.dimensions.length,
       breadth:
-        update.width ??
+        update.breadth ??
         update.dimensions?.breadth ??
         variant.dimensions.breadth,
       height:
