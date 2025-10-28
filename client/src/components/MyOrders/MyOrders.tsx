@@ -216,11 +216,16 @@ export function MyOrders() {
                             {/* Products (UPDATED) */}
                             <div className="space-y-4 mb-4">
                                 {order.products.map((item, index) => {
-                                    // Determine if the review button should be disabled
+                                    // Safely determine productId
                                     const productId =
-                                        typeof item.product === "object" ? item.product._id : item.product;
-                                    const hasReviewed = reviewedProducts[productId];
+                                        item?.product && typeof item.product === "object"
+                                            ? item.product._id
+                                            : typeof item?.product === "string"
+                                                ? item.product
+                                                : null;
 
+                                    // Safely get review status
+                                    const hasReviewed = productId ? reviewedProducts[productId] : false;
 
                                     return (
                                         <div
@@ -228,51 +233,55 @@ export function MyOrders() {
                                             className="flex flex-col sm:flex-row gap-4 border-b pb-4 last:border-b-0"
                                         >
                                             <img
-                                                src={item.images?.[0] || "/placeholder.png"}
-                                                alt={item.name}
+                                                src={item?.images?.[0] || "/placeholder.png"}
+                                                alt={item?.name || "Product Image"}
                                                 className="w-24 h-24 object-cover rounded-lg border"
                                             />
+
                                             <div className="flex-1">
-                                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                                {/* ... (Product Details - UNCHANGED) ... */}
-                                                {item.variant && (
+                                                <h3 className="font-semibold text-gray-800">{item?.name || "Unknown Product"}</h3>
+
+                                                {item?.variant && (
                                                     <p className="text-sm text-gray-500">
                                                         {item.variant.weight && `Weight: ${item.variant.weight}`}{" "}
                                                         {item.variant.type && `• Type: ${item.variant.type}`}{" "}
-                                                        {item.variant.packaging &&
-                                                            `• Packaging: ${item.variant.packaging}`}
+                                                        {item.variant.packaging && `• Packaging: ${item.variant.packaging}`}
                                                     </p>
                                                 )}
+
                                                 <p className="text-gray-700">
-                                                    Qty: <span className="font-medium">{item.quantity}</span>
+                                                    Qty: <span className="font-medium">{item?.quantity || 0}</span>
                                                 </p>
+
                                                 <p className="text-gray-700">
                                                     Price:{" "}
                                                     <span className="font-semibold text-amber-700">
-                                                        ₹{item.price.toFixed(2)}
+                                                        ₹{item?.price?.toFixed ? item.price.toFixed(2) : "0.00"}
                                                     </span>
                                                 </p>
                                             </div>
 
-                                            {/* NEW: Review Button */}
+                                            {/* Review Button */}
                                             {isDelivered && (
                                                 <div className="sm:self-center sm:ml-auto">
                                                     <button
-                                                        onClick={() => openReviewModal(productId, item.name)}
-                                                        disabled={hasReviewed}
-                                                        className={`px-3 py-1 text-sm font-semibold rounded-lg transition ${hasReviewed
+                                                        onClick={() =>
+                                                            productId && openReviewModal(productId, item?.name || "")
+                                                        }
+                                                        disabled={!productId || hasReviewed}
+                                                        className={`px-3 py-1 text-sm font-semibold rounded-lg transition ${hasReviewed || !productId
                                                             ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                                                             : "bg-amber-500 text-white hover:bg-amber-600"
                                                             }`}
                                                     >
                                                         {hasReviewed ? "Reviewed" : "Write a Review"}
                                                     </button>
-
                                                 </div>
                                             )}
                                         </div>
                                     );
                                 })}
+
                             </div>
 
                             {/* ... (Order Summary and Delivery Info - UNCHANGED) ... */}

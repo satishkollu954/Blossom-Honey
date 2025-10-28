@@ -236,6 +236,7 @@ export default function ViewProducts() {
                     )
                 );
                 toast.success("Variant updated successfully");
+                getProducts();
                 setEditVariantId(null);
             } else toast.error("Failed to update variant");
         } catch {
@@ -244,6 +245,11 @@ export default function ViewProducts() {
             setActionLoading(null);
         }
     };
+
+
+    useEffect(() => {
+        getProducts();
+    }, [])
 
     // Delete product
     const handleDeleteProduct = async (id: string) => {
