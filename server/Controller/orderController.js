@@ -9,6 +9,7 @@ const {
   createShipmentWithShiprocket,
   cancelShiprocketOrder,
   assignAWB,
+  recommendCourier,
 } = require("../utils/shiprocket");
 const Razorpay = require("razorpay");
 
@@ -214,72 +215,27 @@ const getOrderById = asyncHandler(async (req, res) => {
   res.json(order);
 });
 
-const assignOrderAWB = asyncHandler(async (req, res) => {
-  const orderId = req.params.id;
-
-  const order = await Order.findById(orderId);
-  if (!order) {
-    res.status(404);
-    throw new Error("Order not found");
-  }
-
-  // ✅ Ensure shipment exists first
-  const shipmentId = order.delivery?.shipmentId;
-  if (!shipmentId) {
-    res.status(400);
-    throw new Error("Shipment not found for this order");
-  }
-
-  try {
-    // Optional: if you have a preferred courierId saved in warehouse
-    const warehouse = await Warehouse.findOne();
-    const courierId = warehouse?.preferredCourierId || null; // You can also leave it null for auto-assignment
-
-    // ✅ Assign AWB using Shiprocket utility
-    const result = await assignAWB(shipmentId, courierId);
-
-    // ✅ Update order delivery info
-    order.delivery.awbNumber =
-      result.response?.data?.awb_code ||
-      result.awb_code ||
-      order.delivery.awbNumber;
-    order.delivery.deliveryStatus = "AWB Assigned";
-    await order.save();
-
-    console.log("✅ AWB successfully assigned:", result);
-    res.json({
-      success: true,
-      message: "AWB assigned successfully",
-      awbData: result,
-    });
-  } catch (error) {
-    console.error("❌ Error assigning AWB:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to assign AWB",
-      error: error.message,
-    });
-  }
-});
-
 // ✅ Update order status
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
   const { status, deliveredAt } = req.body;
 
+  // 1️⃣ Fetch order with user info
   const order = await Order.findById(orderId).populate("user", "name email");
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
   }
-
+  console.log(`Updating order ${orderId} to status: ${status}`);
   order.status = status;
 
+  // 2️⃣ If delivered → mark payment paid for COD
   if (status === "Delivered") {
     order.deliveredAt = deliveredAt || new Date();
     if (order.paymentType === "COD") order.paymentStatus = "Paid";
   }
 
+  // 3️⃣ Handle shipment creation when marking as 'Shipped'
   if (status === "Shipped" && !order.delivery.partner) {
     const warehouse = await Warehouse.findOne();
     if (!warehouse) {
@@ -287,43 +243,106 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       throw new Error("No warehouse found for shipment");
     }
 
-    try {
-      await createShipmentWithShiprocket(order._id, warehouse._id);
+    await createShipmentWithShiprocket(order._id, warehouse._id);
 
-      // 2️⃣ Assign AWB only after shipment created
-      const updatedOrder = await Order.findById(order._id);
-      if (
-        updatedOrder.delivery?.shipmentId &&
-        !updatedOrder.delivery?.awbNumber
-      ) {
-        console.log(
-          "📦 Assigning AWB for shipment:",
-          updatedOrder.delivery.shipmentId
-        );
-        await assignOrderAWB({ params: { id: order._id } });
-      }
-    } catch (err) {
-      console.error("Shiprocket Error:", err.message);
-    }
+    // try {
+    //   console.log("🚚 Creating shipment on Shiprocket for order:", order._id);
+    //   await createShipmentWithShiprocket(order._id, warehouse._id);
+
+    //   // Re-fetch updated order (shipment info now saved)
+    //   const updatedOrder = await Order.findById(order._id);
+    //   console.log("✅ Shipment created:", updatedOrder.delivery);
+    //   if (
+    //     updatedOrder.delivery?.shipmentId &&
+    //     !updatedOrder.delivery?.awbNumber
+    //   ) {
+    //     console.log(
+    //       "📦 Assigning AWB for shipment:",
+    //       updatedOrder.delivery.shipmentId
+    //     );
+
+    //     // ✅ Try to get best courier
+    //     const bestCourier = await recommendCourier(
+    //       order._id
+    //     );
+    //     console.log("🚚 Best Courier recommendation:", bestCourier);
+    //     const selectedCourierId = bestCourier?.courier_company_id;
+
+    //     if (!selectedCourierId) {
+    //       console.warn("⚠️ No courier recommendation found from Shiprocket");
+    //       throw new Error("No courier company available for assignment");
+    //     }
+    //     console.log("🚚 Selected courier ID:", selectedCourierId);
+    //     console.log("selectedCourierId name ", bestCourier?.courier_name);
+    //     // ✅ Try to assign AWB with safe payload
+    //     // Using Delhivery as default courier
+    //     const awbResponse = await assignAWB(
+    //       updatedOrder.delivery.shipmentId,
+    //       selectedCourierId
+    //     );
+
+    //     // ✅ Extract AWB + courier safely
+    //     const awbNumber =
+    //       awbResponse?.response?.data?.awb_code || awbResponse?.awb_code;
+    //     const courierName =
+    //       awbResponse?.response?.data?.courier_name ||
+    //       awbResponse?.courier_name;
+
+    //     if (!awbNumber) {
+    //       console.error("🚫 AWB assignment failed — No AWB code returned");
+    //       throw new Error("AWB assignment failed — missing AWB code");
+    //     }
+
+    //     updatedOrder.delivery.awbNumber = awbNumber;
+    //     updatedOrder.delivery.courierName = courierName || "Unknown Courier";
+    //     await updatedOrder.save();
+
+    //     console.log(
+    //       `✅ AWB assigned successfully: ${awbNumber} (${courierName})`
+    //     );
+    //   } else {
+    //     console.log("ℹ️ AWB already assigned, skipping auto-assign step.");
+    //   }
+    // } catch (err) {
+    //   console.error("🚨 Shiprocket Error:", err.response?.data || err.message);
+
+    //   return res.status(500).json({
+    //     success: false,
+    //     message: "Failed to create shipment or assign AWB",
+    //     error: err.response?.data || err.message,
+    //   });
+    // }
   }
 
+  // 4️⃣ Save updated order (non-shiprocket flow)
   await order.save();
 
-  await sendEmail({
-    to: order.user.email,
-    subject: `Order ${status} - Blossom Honey`,
-    html: `
-      <div style="font-family: 'Segoe UI', sans-serif; background: #fffaf4; padding: 30px;">
-        <h3 style="text-align:center; color:#d97706;">Order Status: ${status}</h3>
-        <p>Hi ${order.user.name}, your order #${order._id
-      .toString()
-      .slice(-6)} is now <strong>${status}</strong>.</p>
-        <p>Thank you for shopping with Blossom Honey 🍯</p>
-      </div>
-    `,
-  });
+  // 5️⃣ Send email in separate try/catch to avoid blocking
+  try {
+    await sendEmail({
+      to: order.user.email,
+      subject: `Order ${status} - Blossom Honey`,
+      html: `
+        <div style="font-family: 'Segoe UI', sans-serif; background: #fffaf4; padding: 30px;">
+          <h3 style="text-align:center; color:#d97706;">Order Status: ${status}</h3>
+          <p>Hi ${order.user.name}, your order #${order._id
+        .toString()
+        .slice(-6)} is now <strong>${status}</strong>.</p>
+          <p>Thank you for shopping with Blossom Honey 🍯</p>
+        </div>
+      `,
+    });
+    console.log(`📧 Email sent to ${order.user.email} for status: ${status}`);
+  } catch (emailErr) {
+    console.error("📧 Email sending failed:", emailErr.message);
+  }
 
-  res.json({ message: "Order updated and email sent", order });
+  // 6️⃣ Respond
+  res.json({
+    success: true,
+    message: `Order updated to ${status} successfully`,
+    order,
+  });
 });
 
 // ✅ Handle return approval/rejection

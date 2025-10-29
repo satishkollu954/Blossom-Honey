@@ -18,7 +18,7 @@ class ShiprocketTracker {
       if (attempt >= this.maxRetries) throw err;
       const delay = 500 * attempt;
       console.warn(`⚠️ Retry attempt ${attempt} after ${delay}ms`);
-      await new Promise(res => setTimeout(res, delay));
+      await new Promise((res) => setTimeout(res, delay));
       return this.retryRequest(fn, attempt + 1);
     }
   }
@@ -26,12 +26,16 @@ class ShiprocketTracker {
   // 🔑 Get or refresh Shiprocket token
   async getShiprocketToken() {
     const now = new Date();
-    if (this.token && this.tokenExpiry && now < this.tokenExpiry) return this.token;
+    if (this.token && this.tokenExpiry && now < this.tokenExpiry)
+      return this.token;
 
     return this.retryRequest(async () => {
       const res = await axios.post(
         "https://apiv2.shiprocket.in/v1/external/auth/login",
-        { email: process.env.SHIPROCKET_EMAIL, password: process.env.SHIPROCKET_PASSWORD }
+        {
+          email: process.env.SHIPROCKET_EMAIL,
+          password: process.env.SHIPROCKET_PASSWORD,
+        }
       );
       this.token = res.data.token;
       this.tokenExpiry = new Date(now.getTime() + 23 * 60 * 60 * 1000);
@@ -58,13 +62,18 @@ class ShiprocketTracker {
         const prevStatus = order.delivery.deliveryStatus;
         order.delivery.deliveryStatus = trackingData.shipment_status;
 
-        if (trackingData.shipment_status === "Delivered" && order.status !== "Delivered") {
+        if (
+          trackingData.shipment_status === "Delivered" &&
+          order.status !== "Delivered"
+        ) {
           order.status = "Delivered";
           order.deliveredAt = new Date();
         }
 
         await order.save();
-        console.log(`✅ Order ${order._id}: ${prevStatus} → ${trackingData.shipment_status}`);
+        console.log(
+          `✅ Order ${order._id}: ${prevStatus} → ${trackingData.shipment_status}`
+        );
       }
     } catch (err) {
       console.error(`❌ Error updating order ${order._id}:`, err.message);
@@ -90,7 +99,9 @@ class ShiprocketTracker {
 
         const limit = 5;
         for (let i = 0; i < orders.length; i += limit) {
-          await Promise.all(orders.slice(i, i + limit).map(o => this.updateDeliveryStatus(o)));
+          await Promise.all(
+            orders.slice(i, i + limit).map((o) => this.updateDeliveryStatus(o))
+          );
         }
 
         console.log("✅ Delivery status update job completed.");
@@ -104,7 +115,8 @@ class ShiprocketTracker {
   async handleShiprocketWebhook(req, res) {
     try {
       const { awb, status, shipment_id, shipment_status } = req.body;
-      if (!awb || !status) return res.status(400).json({ message: "Invalid webhook data" });
+      if (!awb || !status)
+        return res.status(400).json({ message: "Invalid webhook data" });
 
       const order = await Order.findOne({ "delivery.awbNumber": awb });
       if (!order) return res.status(404).json({ message: "Order not found" });
@@ -112,13 +124,18 @@ class ShiprocketTracker {
       const prevStatus = order.delivery.deliveryStatus;
       order.delivery.deliveryStatus = status || shipment_status || prevStatus;
 
-      if (order.delivery.deliveryStatus === "Delivered" && order.status !== "Delivered") {
+      if (
+        order.delivery.deliveryStatus === "Delivered" &&
+        order.status !== "Delivered"
+      ) {
         order.status = "Delivered";
         order.deliveredAt = new Date();
       }
 
       await order.save();
-      console.log(`🌐 Webhook: Order ${order._id} updated: ${prevStatus} → ${order.delivery.deliveryStatus}`);
+      console.log(
+        `🌐 Webhook: Order ${order._id} updated: ${prevStatus} → ${order.delivery.deliveryStatus}`
+      );
 
       res.status(200).json({ message: "Webhook processed successfully" });
     } catch (err) {

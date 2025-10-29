@@ -76,7 +76,7 @@ const getAdvertisementById = asyncHandler(async (req, res) => {
 // --- GET Active Advertisements for Users ---
 const getActiveAdvertisementsForUser = asyncHandler(async (req, res) => {
   const { position } = req.query;
-  console.log("Position query param:", position);
+  //console.log("Position query param:", position);
   // optional filter: homepage, banner, etc.
   const today = new Date();
 

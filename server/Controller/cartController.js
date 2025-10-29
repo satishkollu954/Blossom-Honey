@@ -217,15 +217,27 @@ const checkout = asyncHandler(async (req, res) => {
     };
   });
 
+  // ✅ Calculate shipping charge based on min purchase
+  const MIN_PURCHASE_AMOUNT = Number(process.env.MIN_PURCHASE_AMOUNT) || 0;
+  let shippingCharge = 0;
+
+  if (cart.totalAmount < MIN_PURCHASE_AMOUNT) {
+    shippingCharge = 50; // Apply ₹50 shipping charge
+  }
+
+  // ✅ Final total amount including shipping
+  const finalAmount = cart.totalAmount + shippingCharge;
+
   const order = new Order({
     user: userId,
     products: orderProducts,
     shippingAddress,
-    totalAmount: cart.totalAmount,
+    totalAmount: finalAmount,
     paymentType: paymentType,
     paymentStatus: "Pending",
     coupon: cart.coupon || null,
     discountAmount: cart.discountAmount || 0,
+    shippingCharge: shippingCharge,
   });
 
   // ---- COD ----

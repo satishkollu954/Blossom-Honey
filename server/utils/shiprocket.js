@@ -2,6 +2,7 @@
 const axios = require("axios");
 const Order = require("../Model/Order");
 const Warehouse = require("../Model/Warehouse");
+const Product = require("../Model/Product");
 
 const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL;
 const SHIPROCKET_PASSWORD = process.env.SHIPROCKET_PASSWORD;
@@ -56,45 +57,93 @@ class Shiprocket {
   }
 
   async createShipmentWithShiprocket(orderId, warehouseId) {
-    const order = await Order.findById(orderId).populate("user");
+    const order = await Order.findById(orderId).populate("user").populate({
+      path: "products.product",
+      model: "Product",
+      select: "name variants",
+    });
+
     if (!order) throw new Error("Order not found");
 
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) throw new Error("Warehouse not found");
 
-    // ✅ Calculate total weight and largest box dimensions
-    let totalWeight = 0;
-    let maxLength = 0,
-      maxBreadth = 0,
-      maxHeight = 0;
+    let totalPrice = 0;
+    const orderItems = [];
+    const productList = [];
 
-    const orderItems = order.products.map((item) => {
-      totalWeight += (item.weightInKg || 0.5) * item.quantity;
-      maxLength = Math.max(maxLength, item.dimensions?.length || 10);
-      maxBreadth = Math.max(maxBreadth, item.dimensions?.breadth || 10);
-      maxHeight = Math.max(maxHeight, item.dimensions?.height || 10);
+    // ✅ Loop through order products
+    for (const item of order.products) {
+      const product = item.product;
+      const variant = product?.variants?.find(
+        (v) =>
+          v.sku === item.sku || v._id.toString() === item.variantId?.toString()
+      );
 
-      return {
-        name: item.name,
-        sku: item.sku || item.product.toString(),
-        units: item.quantity,
-        selling_price: item.price,
+      const qty = item.quantity || 1;
+
+      // ✅ Get variant dimensions
+      const dimensions = variant?.dimensions || {
+        length: 10,
+        breadth: 10,
+        height: 10,
       };
+
+      const weightInKg = Number(variant?.weightInKg || 0.5);
+
+      totalPrice += (variant?.finalPrice || item.price || 0) * qty;
+
+      // ✅ Push for final calculation
+      productList.push({
+        length: dimensions.length,
+        breadth: dimensions.breadth,
+        height: dimensions.height,
+        quantity: qty,
+        weight: weightInKg,
+      });
+
+      orderItems.push({
+        name: product?.name || "Product",
+        sku: variant?.sku || item.sku || product?._id.toString(),
+        units: qty,
+        selling_price: variant?.finalPrice || item.price || 0,
+      });
+    }
+
+    // ✅ Use your cube-based calculation for combined dimensions
+    const { totalWeight, dimensions } = await this.calculatePackageDimensions(
+      productList
+    );
+
+    // ✅ Safety fallback
+    const length = dimensions.length || 10;
+    const breadth = dimensions.breadth || 10;
+    const height = dimensions.height || 10;
+
+    // ✅ Calculate volumetric weight
+    const volumetricWeight = (length * breadth * height) / 5000;
+    const appliedWeight = Math.max(totalWeight, volumetricWeight);
+
+    console.log("📦 Package Calculation:", {
+      totalWeight,
+      length,
+      breadth,
+      height,
+      volumetricWeight,
+      appliedWeight,
+      totalPrice,
     });
 
-    if (totalWeight <= 0) totalWeight = 0.5; // minimum 500g
-    const dimensions = {
-      length: maxLength || 10,
-      breadth: maxBreadth || 10,
-      height: maxHeight || 10,
-    };
+    // ✅ Get Shiprocket token
     const token = await this.getShiprocketToken();
     const orderDate = new Date().toISOString().slice(0, 16).replace("T", " ");
+
     const shipmentData = {
       order_id: order._id.toString(),
       order_date: orderDate,
       pickup_location: warehouse.pickupLocationName,
       comment: "Order from Blossom Honey",
+
       billing_customer_name: order.user.name || "Customer",
       billing_last_name: "NA",
       billing_address: this.buildAddress(order.shippingAddress),
@@ -104,17 +153,23 @@ class Shiprocket {
       billing_country: "India",
       billing_email: order.user.email,
       billing_phone: order.shippingAddress.phone?.toString() || "9999999999",
+
       shipping_is_billing: true,
       order_items: orderItems,
       payment_method: order.paymentType === "COD" ? "COD" : "Prepaid",
       shipping_charges: order.shippingCharge || 0,
-      sub_total: order.totalAmount,
+      sub_total: totalPrice,
+
+      // ✅ Pass calculated weight and dimensions
       weight: totalWeight,
-      length: dimensions.length,
-      breadth: dimensions.breadth,
-      height: dimensions.height,
+      length,
+      breadth,
+      height,
     };
-    console.log("Creating shipment with data:", shipmentData);
+
+    console.log("📦 Creating shipment payload:", shipmentData);
+
+    // ✅ Create shipment on Shiprocket
     const data = await this.retryRequest(async () => {
       const res = await axios.post(
         "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
@@ -128,21 +183,73 @@ class Shiprocket {
       );
       return res.data;
     });
-    console.log("✅ Shipment created:", data);
-    // ✅ Save delivery info to order
+
+    console.log("✅ Shipment created successfully:", data);
+
+    if (!data.shipment_id) {
+      throw new Error("Failed to create shipment — no shipment_id returned");
+    }
+
+    // ✅ Update delivery info
     order.delivery = {
       partner: "Shiprocket",
       trackingId: data.shipment_id,
-      awbNumber: data.awb_code,
+      awbNumber: data.awb_code || null,
       shipmentId: data.shipment_id,
       deliveryStatus: "Pickup Scheduled",
       pickupAddress: warehouse.address,
       deliveryAddress: this.buildAddress(order.shippingAddress),
       estimatedDeliveryDate: data.estimated_delivery_date,
     };
+
     await order.save();
+    console.log("🚚 Order delivery updated:", order.delivery);
+
     return data;
   }
+
+  async calculatePackageDimensions(products) {
+    let totalWeight = 0;
+    let maxLength = 0;
+    let maxBreadth = 0;
+    let totalHeight = 0;
+
+    products.forEach((p) => {
+      const {
+        length = 10,
+        breadth = 10,
+        height = 10,
+        quantity = 1,
+        weight = 0.5,
+      } = p;
+
+      // ✅ Total weight increases with quantity
+      totalWeight += weight * quantity;
+
+      // ✅ Choose the largest base area (for multi-products)
+      maxLength = Math.max(maxLength, length);
+      maxBreadth = Math.max(maxBreadth, breadth);
+
+      // ✅ Stack vertically (height adds up)
+      totalHeight += height * quantity;
+    });
+
+    // ✅ Safety fallbacks
+    if (maxLength <= 0) maxLength = 10;
+    if (maxBreadth <= 0) maxBreadth = 10;
+    if (totalHeight <= 0) totalHeight = 10;
+    if (totalWeight <= 0) totalWeight = 0.5;
+
+    return {
+      totalWeight: parseFloat(totalWeight.toFixed(2)),
+      dimensions: {
+        length: Math.round(maxLength),
+        breadth: Math.round(maxBreadth),
+        height: Math.round(totalHeight),
+      },
+    };
+  }
+
   async cancelShiprocketOrder(orderIds) {
     if (!Array.isArray(orderIds)) orderIds = [orderIds]; // Ensure it's always an array
 
@@ -177,26 +284,48 @@ class Shiprocket {
 
   // ================== ASSIGN AWB ==================
   async assignAWB(shipmentId, courierId) {
+    console.log(
+      `📦 Assigning AWB for shipment ${shipmentId} with courier ${courierId}`
+    );
+
     const token = await this.getShiprocketToken();
 
-    const data = {
+    // ✅ Validate required fields
+    if (!shipmentId || !courierId) {
+      throw new Error(
+        "Missing required Shiprocket fields: shipment_id or courier_id"
+      );
+    }
+
+    // ✅ Build the payload according to Shiprocket documentation
+    const payload = {
       shipment_id: shipmentId,
       courier_id: courierId,
     };
 
-    const res = await axios.post(
-      "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    console.log("📦 Assign AWB Payload Sent to Shiprocket:", payload);
 
-    console.log("✅ AWB assigned:", res.data);
-    return res.data;
+    try {
+      const res = await axios.post(
+        "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("✅ AWB assigned successfully:", res.data);
+      return res.data;
+    } catch (error) {
+      const errData = error.response?.data || error.message;
+      console.error("🚨 AWB assignment failed:", errData);
+      throw new Error(
+        typeof errData === "object" ? JSON.stringify(errData, null, 2) : errData
+      );
+    }
   }
 
   // ================== TRACK SHIPMENT ==================
@@ -213,6 +342,51 @@ class Shiprocket {
     console.log("🚚 Tracking details:", res.data);
     return res.data;
   }
+  // Add inside your Shiprocket class in shiprocket.js
+
+  async recommendCourier(orderId) {
+    const token = await this.getShiprocketToken();
+
+    console.log(`🔍 Fetching courier recommendations for order ${orderId}...`);
+
+    // ✅ Use order_id instead of shipment_id
+    const res = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/serviceability?order_id=${orderId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const available = res.data?.data?.available_courier_companies || [];
+
+    if (available.length === 0) {
+      throw new Error("No courier companies available for this shipment");
+    }
+
+    // ✅ Filter couriers: rating > 3.5 and rate > 0
+    const filtered = available.filter(
+      (c) => (c.rating || 0) > 3.5 && c.rate > 0
+    );
+
+    // ✅ If no courier has rating > 3.5, fallback to all
+    const couriersToConsider = filtered.length > 0 ? filtered : available;
+
+    // ✅ Sort by lowest rate (ascending)
+    couriersToConsider.sort((a, b) => a.rate - b.rate);
+
+    // ✅ Pick the best one (lowest cost + rating > 4 if available)
+    const bestCourier = couriersToConsider[0];
+
+    console.log("🚚 Best courier selected:");
+    console.log({
+      name: bestCourier.courier_name,
+      rate: bestCourier.rate,
+      rating: bestCourier.rating,
+      courier_company_id: bestCourier.courier_company_id,
+    });
+
+    return bestCourier;
+  }
 }
 const shiprocket = new Shiprocket();
 module.exports = {
@@ -221,4 +395,5 @@ module.exports = {
   cancelShiprocketOrder: shiprocket.cancelShiprocketOrder.bind(shiprocket),
   assignAWB: shiprocket.assignAWB.bind(shiprocket),
   trackShipment: shiprocket.trackShipment.bind(shiprocket),
+  recommendCourier: shiprocket.recommendCourier.bind(shiprocket),
 };
