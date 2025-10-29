@@ -120,7 +120,7 @@ export function MyOrders() {
             console.error(error);
             toast.error("Failed to cancel order");
         } finally {
-            setCancelLoading(null); // 🛑 Stop spinner
+            setCancelLoading(null); // Stop spinner
         }
     };
 

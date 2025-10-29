@@ -214,54 +214,6 @@ const getOrderById = asyncHandler(async (req, res) => {
   res.json(order);
 });
 
-const assignOrderAWB = asyncHandler(async (req, res) => {
-  const orderId = req.params.id;
-
-  const order = await Order.findById(orderId);
-  if (!order) {
-    res.status(404);
-    throw new Error("Order not found");
-  }
-
-  // ✅ Ensure shipment exists first
-  const shipmentId = order.delivery?.shipmentId;
-  if (!shipmentId) {
-    res.status(400);
-    throw new Error("Shipment not found for this order");
-  }
-
-  try {
-    // Optional: if you have a preferred courierId saved in warehouse
-    const warehouse = await Warehouse.findOne();
-    const courierId = warehouse?.preferredCourierId || null; // You can also leave it null for auto-assignment
-
-    // ✅ Assign AWB using Shiprocket utility
-    const result = await assignAWB(shipmentId, courierId);
-
-    // ✅ Update order delivery info
-    order.delivery.awbNumber =
-      result.response?.data?.awb_code ||
-      result.awb_code ||
-      order.delivery.awbNumber;
-    order.delivery.deliveryStatus = "AWB Assigned";
-    await order.save();
-
-    console.log("✅ AWB successfully assigned:", result);
-    res.json({
-      success: true,
-      message: "AWB assigned successfully",
-      awbData: result,
-    });
-  } catch (error) {
-    console.error("❌ Error assigning AWB:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to assign AWB",
-      error: error.message,
-    });
-  }
-});
-
 // ✅ Update order status
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
@@ -300,7 +252,30 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
           "📦 Assigning AWB for shipment:",
           updatedOrder.delivery.shipmentId
         );
-        await assignOrderAWB({ params: { id: order._id } });
+
+        const courierId = warehouse?.preferredCourierId || null; // optional
+        try {
+          const awbResponse = await assignAWB(
+            updatedOrder.delivery.shipmentId,
+            courierId
+          );
+
+          // ✅ Update order after successful AWB assignment
+          updatedOrder.delivery.awbNumber =
+            awbResponse.response?.data?.awb_code ||
+            awbResponse.awb_code ||
+            updatedOrder.delivery.awbNumber;
+          updatedOrder.delivery.deliveryStatus = "AWB Assigned";
+          await updatedOrder.save();
+
+          console.log("✅ AWB successfully assigned:", awbResponse);
+        } catch (awbErr) {
+          // 🔍 Log full Shiprocket error response
+          console.error(
+            "❌ Shiprocket AWB Error:",
+            awbErr.response?.data || awbErr.message
+          );
+        }
       }
     } catch (err) {
       console.error("Shiprocket Error:", err.message);
