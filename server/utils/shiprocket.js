@@ -137,7 +137,10 @@ class Shiprocket {
     // ✅ Get Shiprocket token
     const token = await this.getShiprocketToken();
     const orderDate = new Date().toISOString().slice(0, 16).replace("T", " ");
-
+    const discountedSubtotal = Math.max(
+      totalPrice - (order.discountAmount || 0),
+      0
+    );
     const shipmentData = {
       order_id: order._id.toString(),
       order_date: orderDate,
@@ -158,7 +161,8 @@ class Shiprocket {
       order_items: orderItems,
       payment_method: order.paymentType === "COD" ? "COD" : "Prepaid",
       shipping_charges: order.shippingCharge || 0,
-      sub_total: totalPrice,
+      sub_total: totalPrice, // ✅ use after-discount value
+      total_discount: order.discountAmount || 0, // ✅ optional, for clarity
 
       // ✅ Pass calculated weight and dimensions
       weight: totalWeight,

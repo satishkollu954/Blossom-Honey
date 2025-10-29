@@ -299,7 +299,7 @@ export function MyOrders() {
                                     <Package size={16} className="text-amber-600" />
                                     Total:{" "}
                                     <span className="font-semibold text-amber-700">
-                                        ₹{(order.totalAmount - (order.discountAmount || 0)).toFixed(2)}
+                                        ₹{order.totalAmount.toFixed(2)}
                                     </span>
                                 </div>
                             </div>

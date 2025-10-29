@@ -121,9 +121,7 @@ export const Checkout: React.FC = () => {
                 {
                     address: selectedAddress,
                     paymentType: paymentMethod,
-                    discount,
-                    shippingCharge,
-                    finalAmount,
+
                     items: cartItems.map((item: CartItem) => ({
                         productId: item.product._id,
                         variantId: item.variant._id,

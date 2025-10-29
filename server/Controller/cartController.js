@@ -217,33 +217,42 @@ const checkout = asyncHandler(async (req, res) => {
     };
   });
 
-  // ✅ Calculate shipping charge based on min purchase
-  const MIN_PURCHASE_AMOUNT = Number(process.env.MIN_PURCHASE_AMOUNT) || 0;
-  let shippingCharge = 0;
+  console.log(orderProducts);
 
-  if (cart.totalAmount < MIN_PURCHASE_AMOUNT) {
-    shippingCharge = 50; // Apply ₹50 shipping charge
+  // ✅ Recalculate cart total before order creation
+  let subtotal = 0;
+  for (const item of cart.items) {
+    subtotal += item.price * item.quantity;
   }
 
-  // ✅ Final total amount including shipping
-  const finalAmount = cart.totalAmount + shippingCharge;
+  // ✅ Apply discount if coupon exists
+  let discountAmount = cart.discountAmount || 0;
+  if (discountAmount > subtotal) discountAmount = subtotal;
+
+  // ✅ Apply shipping charge if below threshold
+  const MIN_PURCHASE_AMOUNT = Number(process.env.MIN_PURCHASE_AMOUNT) || 500;
+  let shippingCharge = subtotal - discountAmount < MIN_PURCHASE_AMOUNT ? 50 : 0;
+
+  // ✅ Final total
+  const finalAmount = subtotal - discountAmount + shippingCharge;
 
   const order = new Order({
     user: userId,
     products: orderProducts,
     shippingAddress,
     totalAmount: finalAmount,
-    paymentType: paymentType,
+    discountAmount,
+    shippingCharge,
+    paymentType,
     paymentStatus: "Pending",
     coupon: cart.coupon || null,
-    discountAmount: cart.discountAmount || 0,
-    shippingCharge: shippingCharge,
   });
-
+  console.log("the order object==> ", order.totalAmount);
   // ---- COD ----
   if (paymentType === "COD") {
     order.status = "Placed";
     order.paymentStatus = "Pending";
+    console.log("the order==> ", order);
     await order.save();
 
     // ✅ Decrease stock safely
@@ -272,13 +281,15 @@ const checkout = asyncHandler(async (req, res) => {
 
   // ---- Online Payment ----
   await order.save();
+
   const options = {
     amount: Math.round(order.totalAmount * 100), // in paise
     currency: "INR",
     receipt: order._id.toString(),
     payment_capture: 1,
   };
-
+  console.log(Math.round(order.totalAmount * 100));
+  console.log(options);
   const razorpayOrder = await razorpay.orders.create(options);
   res.json({
     message: "Order created, proceed to payment",

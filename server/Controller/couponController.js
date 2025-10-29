@@ -185,6 +185,8 @@ const applyCouponToCart = asyncHandler(async (req, res) => {
   cart.totalAmount = cart.totalAmount - discountAmount;
   await cart.save();
 
+  console.log(cart);
+
   // ✅ Update coupon usage tracking
   // coupon.usedCount += 1;
   // if (coupon.oncePerUser) {
