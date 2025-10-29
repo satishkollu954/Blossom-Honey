@@ -20,7 +20,9 @@ const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
-
+  const totalAmount =
+    order.totalAmount + order.shippingCharge - order.discountAmount;
+  console.log("Creating Razorpay order for amount:", totalAmount);
   const options = {
     amount: order.totalAmount * 100, // in paise
     currency: "INR",

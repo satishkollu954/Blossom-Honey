@@ -426,7 +426,7 @@ const updateVariants = asyncHandler(async (req, res) => {
     };
   }
 
-  console.log("--> ", variant.dimensions);
+  // console.log("--> ", variant.dimensions);
   // 5️⃣ Recalculate final price
   const price = variant.price || 0;
   const discount = variant.discount || 0;
@@ -446,7 +446,7 @@ const updateVariants = asyncHandler(async (req, res) => {
     }
     variant.images = uploadedImages;
   }
-  console.log("product==>>  ", product.variants[0].dimensions);
+  // console.log("product==>>  ", product.variants[0].dimensions);
   // 7️⃣ Save product (with updated variant)
   await product.save();
 
