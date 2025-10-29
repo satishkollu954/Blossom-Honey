@@ -4,6 +4,16 @@ const Advertisement = require("../Model/Advertisement");
 const { createUploader } = require("../Middleware/uploadMiddleware"); // your reusable uploader
 
 // --- CREATE Advertisement ---
+
+// Auto deactivate expired ads
+const deactivateExpiredAds = async () => {
+  const today = new Date();
+  await Advertisement.updateMany(
+    { endDate: { $lt: today }, isActive: true },
+    { $set: { isActive: false } }
+  );
+};
+
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, link, position, startDate, endDate } = req.body;
   const userId = req.user?._id;
@@ -53,6 +63,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
 // --- GET All Advertisements ---
 const getAllAdvertisements = asyncHandler(async (req, res) => {
+  await deactivateExpiredAds();
   const { activeOnly, position } = req.query;
   const filter = {};
 
@@ -76,6 +87,7 @@ const getAdvertisementById = asyncHandler(async (req, res) => {
 // --- GET Active Advertisements for Users ---
 const getActiveAdvertisementsForUser = asyncHandler(async (req, res) => {
   const { position } = req.query;
+  await deactivateExpiredAds();
   //console.log("Position query param:", position);
   // optional filter: homepage, banner, etc.
   const today = new Date();
