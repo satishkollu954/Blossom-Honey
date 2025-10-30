@@ -83,39 +83,157 @@ const requestReturn = asyncHandler(async (req, res) => {
 });
 
 // ✅ Cancel order by user
+// const cancelOrder = asyncHandler(async (req, res) => {
+//   const userId = req.user._id;
+//   const orderId = req.params.id;
+
+//   const order = await Order.findOne({ _id: orderId, user: userId }).populate(
+//     "user"
+//   );
+
+//   if (!order) {
+//     res.status(404);
+//     throw new Error("Order not found");
+//   }
+
+//   if (
+//     ["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)
+//   ) {
+//     res.status(400);
+//     throw new Error(
+//       `Order cannot be cancelled. Current status: ${order.status}`
+//     );
+//   }
+//   console.log("Order delivery info:", order.delivery.shipmentId);
+//   // ✅ Cancel in Shiprocket if shipment exists
+//   if (order.delivery?.shipmentId) {
+//     try {
+//       await cancelShiprocketOrder([order.delivery.shipmentId]);
+//     } catch (err) {
+//       console.error("Shiprocket cancel failed:", err.message);
+//       // Optional: you can still continue cancelling locally even if Shiprocket fails
+//     }
+//   }
+
+//   // ✅ Refund for online payments
+//   if (order.paymentType === "Online" && order.razorpayPaymentId) {
+//     const razorpay = new Razorpay({
+//       key_id: process.env.RAZORPAY_KEY_ID,
+//       key_secret: process.env.RAZORPAY_SECRET,
+//     });
+
+//     try {
+//       const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
+//         amount: order.totalAmount * 100,
+//       });
+//       order.paymentStatus = "Refunded";
+//       order.refundId = refund.id;
+//     } catch (err) {
+//       console.error("Refund failed:", err);
+//       res.status(500);
+//       throw new Error("Refund failed. Please contact support.");
+//     }
+//   } else {
+//     order.paymentStatus = order.paymentType === "COD" ? "Pending" : "Refunded";
+//   }
+
+//   order.status = "Cancelled";
+
+//   // ✅ Restock product variants
+//   for (const item of order.products) {
+//     const product = await Product.findById(item.product);
+//     if (!product) continue;
+
+//     const variant = product.variants.id(item.variantId);
+//     if (variant) {
+//       variant.stock += item.quantity;
+//       await product.save();
+//     }
+//   }
+
+//   await order.save();
+
+//   // ✅ Send cancellation email
+//   await sendEmail({
+//     to: order.user.email,
+//     subject: `Order #${order._id} Cancelled - Blossom Honey 🍯`,
+//     html: `
+//       <div style="font-family: Arial, sans-serif; background-color: #fff8e7; padding: 30px;">
+//         <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px;">
+//           <div style="background-color: #fbbf24; padding: 20px; text-align: center;">
+//             <h2 style="color: #fff; margin: 0;">Order Cancelled 🍯</h2>
+//           </div>
+//           <div style="padding: 30px;">
+//             <p>Hi <strong>${order.user.name}</strong>,</p>
+//             <p>Your order <strong>#${
+//               order._id
+//             }</strong> has been successfully cancelled.</p>
+//             <ul>
+//               ${order.products
+//                 .map(
+//                   (item) =>
+//                     `<li>${item.name} × ${item.quantity} – ₹${item.price}</li>`
+//                 )
+//                 .join("")}
+//             </ul>
+//             <p><strong>Refund:</strong> ₹${
+//               order.paymentStatus === "Refunded" ? order.totalAmount : 0
+//             }</p>
+//             <p>Thanks for shopping with Blossom Honey!</p>
+//           </div>
+//         </div>
+//       </div>
+//     `,
+//   });
+
+//   res.json({ message: "Order cancelled successfully", order });
+// });
+
+// ✅ Cancel order (works for both user & admin)
 const cancelOrder = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
   const orderId = req.params.id;
+  const { reason } = req.body || {};
 
-  const order = await Order.findOne({ _id: orderId, user: userId }).populate(
-    "user"
-  );
+  // Detect who canceled
+  const userId = req.user?._id;
+  const isAdmin = !!req.sellerId; // assuming adminAuth sets req.sellerId
 
+  // 1️⃣ Fetch order + user
+  const order = await Order.findById(orderId).populate("user");
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
   }
 
-  if (
-    ["Shipped", "Delivered", "Cancelled", "Returned"].includes(order.status)
-  ) {
+  // 2️⃣ If user, ensure they own the order
+  if (!isAdmin && order.user._id.toString() !== userId.toString()) {
+    res.status(403);
+    throw new Error("Unauthorized to cancel this order");
+  }
+
+  // 3️⃣ Prevent cancellation of completed/returned orders
+  if (["Delivered", "Cancelled", "Returned"].includes(order.status)) {
     res.status(400);
     throw new Error(
       `Order cannot be cancelled. Current status: ${order.status}`
     );
   }
-  console.log("Order delivery info:", order.delivery.shipmentId);
-  // ✅ Cancel in Shiprocket if shipment exists
+
+  console.log("🚚 Order delivery info:", order.delivery.shipmentId);
+
+  // 4️⃣ Cancel in Shiprocket (if exists)
   if (order.delivery?.shipmentId) {
     try {
-      await cancelShiprocketOrder([order.delivery.shipmentId]);
+      await shiprocket.cancelShiprocketOrder([order.delivery.shipmentId]);
+      order.delivery.deliveryStatus = "Cancelled";
+      console.log("✅ Shiprocket order cancelled");
     } catch (err) {
-      console.error("Shiprocket cancel failed:", err.message);
-      // Optional: you can still continue cancelling locally even if Shiprocket fails
+      console.error("⚠️ Shiprocket cancel failed:", err.message);
+      // Continue locally even if Shiprocket fails
     }
   }
 
-  // ✅ Refund for online payments
+  // 5️⃣ Refund (only for online payments)
   if (order.paymentType === "Online" && order.razorpayPaymentId) {
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
@@ -130,20 +248,16 @@ const cancelOrder = asyncHandler(async (req, res) => {
       order.refundId = refund.id;
     } catch (err) {
       console.error("Refund failed:", err);
-      res.status(500);
-      throw new Error("Refund failed. Please contact support.");
+      order.paymentStatus = "RefundPending";
     }
   } else {
     order.paymentStatus = order.paymentType === "COD" ? "Pending" : "Refunded";
   }
 
-  order.status = "Cancelled";
-
-  // ✅ Restock product variants
+  // 6️⃣ Restock products
   for (const item of order.products) {
     const product = await Product.findById(item.product);
     if (!product) continue;
-
     const variant = product.variants.id(item.variantId);
     if (variant) {
       variant.stock += item.quantity;
@@ -151,23 +265,37 @@ const cancelOrder = asyncHandler(async (req, res) => {
     }
   }
 
+  // 7️⃣ Update order status
+  order.status = "Cancelled";
+  order.cancellation = {
+    cancelledBy: isAdmin ? "Admin" : "User",
+    reason: reason || (isAdmin ? "Cancelled by Admin" : "Cancelled by User"),
+    cancelledAt: new Date(),
+  };
+
   await order.save();
 
-  // ✅ Send cancellation email
+  // 8️⃣ Send Email Notification
+  const subject = isAdmin
+    ? `Order #${order._id} Cancelled by Admin - Blossom Honey 🍯`
+    : `Order #${order._id} Cancelled Successfully - Blossom Honey 🍯`;
+
+  const message = isAdmin
+    ? `<p>Your order <strong>#${order._id}</strong> has been cancelled by the admin.</p>`
+    : `<p>Your order <strong>#${order._id}</strong> has been successfully cancelled.</p>`;
+
   await sendEmail({
     to: order.user.email,
-    subject: `Order #${order._id} Cancelled - Blossom Honey 🍯`,
+    subject,
     html: `
       <div style="font-family: Arial, sans-serif; background-color: #fff8e7; padding: 30px;">
         <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px;">
-          <div style="background-color: #fbbf24; padding: 20px; text-align: center;">
+          <div style="background-color: #f87171; padding: 20px; text-align: center;">
             <h2 style="color: #fff; margin: 0;">Order Cancelled 🍯</h2>
           </div>
           <div style="padding: 30px;">
             <p>Hi <strong>${order.user.name}</strong>,</p>
-            <p>Your order <strong>#${
-              order._id
-            }</strong> has been successfully cancelled.</p>
+            ${message}
             <ul>
               ${order.products
                 .map(
@@ -179,14 +307,21 @@ const cancelOrder = asyncHandler(async (req, res) => {
             <p><strong>Refund:</strong> ₹${
               order.paymentStatus === "Refunded" ? order.totalAmount : 0
             }</p>
-            <p>Thanks for shopping with Blossom Honey!</p>
+            <p>Thank you for shopping with Blossom Honey!</p>
           </div>
         </div>
       </div>
     `,
   });
 
-  res.json({ message: "Order cancelled successfully", order });
+  // 9️⃣ Response
+  res.json({
+    success: true,
+    message: isAdmin
+      ? "Order cancelled successfully by Admin"
+      : "Order cancelled successfully",
+    order,
+  });
 });
 
 // ---------------------- ADMIN CONTROLLERS ---------------------- //

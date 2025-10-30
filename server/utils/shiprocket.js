@@ -254,19 +254,48 @@ class Shiprocket {
     };
   }
 
-  async cancelShiprocketOrder(orderIds) {
-    if (!Array.isArray(orderIds)) orderIds = [orderIds]; // Ensure it's always an array
+  // async cancelShiprocketOrder(orderIds) {
+  //   if (!Array.isArray(orderIds)) orderIds = [orderIds]; // Ensure it's always an array
 
+  //   const token = await this.getShiprocketToken();
+
+  //   const data = {
+  //     ids: orderIds,
+  //   };
+
+  //   try {
+  //     const res = await axios.post(
+  //       "https://apiv2.shiprocket.in/v1/external/orders/cancel",
+  //       data,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
+
+  //     console.log("✅ Shiprocket order(s) cancelled:", res.data);
+  //     return res.data;
+  //   } catch (error) {
+  //     console.error(
+  //       "❌ Shiprocket cancellation failed:",
+  //       error.response?.data || error.message
+  //     );
+  //     throw new Error("Shiprocket order cancellation failed");
+  //   }
+  // }
+
+  // ================== ASSIGN AWB ==================
+
+  async cancelShiprocketOrder(ids) {
+    if (!Array.isArray(ids)) ids = [ids]; // always array
     const token = await this.getShiprocketToken();
-
-    const data = {
-      ids: orderIds,
-    };
 
     try {
       const res = await axios.post(
         "https://apiv2.shiprocket.in/v1/external/orders/cancel",
-        data,
+        { ids },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -286,7 +315,6 @@ class Shiprocket {
     }
   }
 
-  // ================== ASSIGN AWB ==================
   async assignAWB(shipmentId, courierId) {
     console.log(
       `📦 Assigning AWB for shipment ${shipmentId} with courier ${courierId}`

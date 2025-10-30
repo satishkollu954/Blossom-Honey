@@ -23,8 +23,8 @@ const createCoupon = asyncHandler(async (req, res) => {
 
   const existing = await Coupon.findOne({ code: code.toUpperCase() });
   if (existing) {
-    res.status(400);
-    throw new Error("Coupon code already exists");
+    res.status(400).json({ message: "Coupon code already exists" });
+    return;
   }
 
   const coupon = await Coupon.create({
@@ -38,7 +38,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     oncePerUser,
     applicableCategories,
   });
-
+  console.log("Created coupon:", coupon);
   res.status(201).json({ message: "Coupon created successfully", coupon });
 });
 
