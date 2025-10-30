@@ -14,7 +14,7 @@ export function Index() {
 
             <AdvertisementRenderer position="popup" type="background" />
             <FeaturedProducts />
-            <AdvertisementRenderer position="sidebar" />
+            <AdvertisementRenderer position="banner" />
             <WhyBlossom />
             <Review />
 

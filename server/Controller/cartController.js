@@ -276,6 +276,21 @@ const checkout = asyncHandler(async (req, res) => {
       html: `<p>Hi ${user.name}, your COD order <b>#${order._id}</b> has been placed successfully!</p>`,
     });
 
+    // ✅ Mark coupon as used after successful COD order
+    if (order.coupon) {
+      const coupon = await Coupon.findById(order.coupon);
+      if (coupon) {
+        coupon.usedCount += 1;
+
+        // If once per user is true, add userId if not already there
+        if (coupon.oncePerUser && !coupon.usedBy.includes(userId)) {
+          coupon.usedBy.push(userId);
+        }
+
+        await coupon.save();
+      }
+    }
+
     return res.json({ message: "COD Order placed successfully", order });
   }
 
@@ -350,6 +365,21 @@ const verifyOnlinePayment = asyncHandler(async (req, res) => {
     subject: `Payment Successful - Order #${order._id}`,
     html: `<p>Hi ${order.user.name}, your payment was successful and your order <b>#${order._id}</b> has been placed!</p>`,
   });
+
+  // ✅ Mark coupon as used after successful payment
+  if (order.coupon) {
+    const coupon = await Coupon.findById(order.coupon);
+    if (coupon) {
+      coupon.usedCount += 1;
+
+      // If once per user is true, add userId if not already there
+      if (coupon.oncePerUser && !coupon.usedBy.includes(order.user._id)) {
+        coupon.usedBy.push(order.user._id);
+      }
+
+      await coupon.save();
+    }
+  }
 
   res.json({ message: "Payment verified successfully", order });
 });
